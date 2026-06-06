@@ -1,0 +1,944 @@
+#
+# Sub-Store 使用说明
+#
+# 这份文件作为 Sub-Store 的 Mihomo 配置模板使用时，不要在这里写 proxy-providers
+# 或手动 proxies。Sub-Store 会在输出结果中自动生成根级 proxies: 节点列表。
+#
+# 使用方式：
+#   - 所有由 Sub-Store 生成的节点会被 include-all: true 的策略组自动引用。
+#   - Proxy / HK / TW / JP / KR / SG / US / OTHERS 会按下面的正则过滤节点。
+
+
+# 1. 全局参数 Global Settings
+# =======================================================
+
+# ── 系统设置 ──
+mixed-port: 7890                             # 混合代理端口
+allow-lan: true                              # 允许局域网连接
+bind-address: "*"                            # 绑定所有网卡 IP，确保本机所有内网 IP 都能接收局域网请求
+ipv6: false                                  # 关闭 IPv6 解析
+log-level: warning                           # 日志级别 仅记录警告和错误，保持后台清爽并节省硬盘
+
+# ── 分流与防封锁机制 ──
+find-process-mode: "off"                     # 进程匹配模式: off 关闭进程规则/ strict 按需精准匹配/ always 强制查询耗性能
+global-client-fingerprint: chrome            # 全局 TLS 指纹伪装: 伪装为正常浏览器，降低节点被墙概率 可选 chrome/ios/random 等
+
+# ── 性能与连接优化 ──
+unified-delay: true                          # 统一延迟计算方式
+tcp-concurrent: true                         # 开启 TCP 并发连接，大幅加快多图网页加载速度
+keep-alive-idle: 600                         # TCP 空闲 600 秒后启动保活探针
+keep-alive-interval: 15                      # 保活心跳包发送间隔 15 秒
+
+# ── 运行状态持久化 ──
+profile:                                     # 记忆功能
+  store-selected: true                       # 记忆手动选择的节点
+  store-fake-ip: true                        # 记忆 Fake-IP 映射表
+
+# ── Clash api ──                            # 默认注释 Nikki可取消注释使用  win mac等桌面gui客户端保持注释避免冲突
+#external-controller: 0.0.0.0:9095
+#secret: ""
+#external-ui: ui
+#external-ui-name: zashboard
+#external-ui-url: "https://github.com/Zephyruso/zashboard/archive/refs/heads/gh-pages.zip"
+
+# =======================================================
+# 2. 流量嗅探 Sniffer
+# =======================================================
+
+# ── Sniffer ──
+sniffer:
+  enable: true                               # 核心开关 开启流量嗅探
+  sniff:
+    HTTP:
+      ports: [80, 8080]                      # 嗅探 HTTP 协议的标准端口及常见的非标大端口
+      override-destination: true             # 局部覆盖 强制用嗅探到的真实域名替换 HTTP 请求中的假 IP
+    TLS:
+      ports: [443]                           # 嗅探 HTTPS/TLS 加密流量，通过读取握手包中的 SNI 获取真实域名
+    QUIC:
+      ports: [443]                           # 嗅探 QUIC HTTP/3 协议流量
+  skip-domain:                               # 嗅探豁免名 遇到以下域名直接放行不拆包，防止破坏特殊协议导致断连
+    - "rule-set:R-private"                   # 局域网 / 私有域名：必须返回真实 IP，否则本地服务无法访问
+    - "rule-set:R-fakeipfilter"              # 标准 Fake-IP 豁免表 NTP / STUN / 音乐 / 游戏等
+    - "rule-set:R-connectivity"              # 连通性探测：返回假 IP 会导致 Windows/macOS 报断网
+    - "rule-set:R-cdn-cn"                    # 国内 CDN：需要真实 IP 做就近调度
+    - "rule-set:R-bank-cn"                   # 国内银行：假 IP 会触发证书校验失败
+    - "rule-set:R-securities-cn"             # 国内证券
+    - "rule-set:R-finance-cn"                # 国内金融
+    - "rule-set:R-ntp-cn"                    # 国内 NTP：假 IP 导致时间同步失败
+    - "rule-set:R-icloud-cn"                 # iCloud 国内节点 云上贵州
+    - "rule-set:R-itunes-cn"                 # iTunes 国内节点
+    - "rule-set:R-apple-pki"                 # Apple 证书服务
+    - "rule-set:R-apple-update"              # iOS/macOS 系统更新
+    - "rule-set:R-apple-cn"                  # Apple 中国专属域名
+    - "rule-set:R-apple-at-cn"               # Apple 国内服务补充
+    - "rule-set:R-apple-dev-cn"              # Apple 开发者国内节点
+    - "rule-set:R-icloud"                    # iCloud
+    - "rule-set:R-itunes"                    # iTunes
+    - "rule-set:R-apple"                     # Apple 全家桶
+    - "rule-set:R-wechat"
+
+  skip-dst-address:                          # 目的地址豁免 遇到以下 IP 地址直接放行不拆包，防止破坏特殊协议导致断连
+    - "rule-set:R-sniffer-skip-ip"
+    - "rule-set:R-private-ip"                # 局域网 / 私有 IP 地址列表
+    - "rule-set:R-telegram-ip"               # Telegram 服务器 IP 地址列表
+    - "rule-set:R-apple-ip"                  # Apple 服务器 IP 地址列表
+    - "rule-set:R-wechat-ip"
+
+# =======================================================
+# 3. 虚拟网卡 TUN
+# =======================================================
+tun:
+  enable: true                               # 开启 TUN 虚拟网卡
+  stack: mixed                               # 混合网络栈：TCP 走 system (高性能)，UDP 走 gVisor (高兼容)
+  dns-hijack: ["udp://any:53", "tcp://any:53"]   # 双重劫持标准 DNS 端口，彻底防泄漏
+  #device: nikki                             #使用nikki，混入全部不修改的情况，开启接口指定为nikki
+  
+  #使用仅内核自行修改下面三项为true 路由控制 使用 GUI 客户端保持 false，纯内核命令行运行改为 true
+  auto-route: false                          # 不自动修改系统路由表，交由外层客户端管理，防冲突
+  auto-redirect: false                       # 不自动配置重定向流量规则
+  auto-detect-interface: false               # 不自动探测物理出口网卡
+  strict-route: false                        # 严格路由限制 开启后物理网卡被锁死，GUI 环境建议 false
+
+# =======================================================
+# 4. DNS
+# =======================================================
+
+dns:
+  # ── 运行参数 ──
+  enable: true                               # 开启内置 DNS 服务
+  cache-algorithm: arc                       # DNS 缓存淘汰算法 ARC 相比传统 LRU 命中率更高
+  listen: 0.0.0.0:1053                       # DNS 服务监听端口
+  ipv6: false                                # 关闭 IPv6 解析 保持与全局设置一致
+  respect-rules: true                        # DNS 请求遵循分流规则，由规则决定 DNS 查询走向而非固定出口
+  prefer-h3: false                           # 优先使用 DoH/DoT 的 HTTP/3 传输，提升解析速度和稳定性
+
+  # ── Fake-IP ──
+  enhanced-mode: fake-ip                     # 开启 Fake-IP 增强模式 秒回假 IP，极大提升网络响应速度
+  fake-ip-range: 198.18.0.1/16               # IANA 保留给 网络基准测试用的段（RFC 2544/6815），明确不会公网路由，安全可靠
+  fake-ip-filter-mode: blacklist             # 黑名单过滤模式 名单内的域名不返回假 IP，要求真实解析
+
+  # ── DNS ──
+  default-nameserver:                        # 基础启动 用于最底层解析下方 proxy-server-nameserver 本身及代理节点的域名
+    - 223.5.5.5
+    - 223.6.6.6
+  proxy-server-nameserver:                   # 节点专线 专职负责解析 “节点” 和 “订阅链接” 的真实 IP
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+  direct-nameserver:                         # 直连兜底 专职负责解析走 DIRECT 分流规则的域名
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:                                # 国外兜底 处理所有未知的兜底域名，防止 DNS 污染 附带节点选择强制走代理出境
+    - 8.8.8.8#Proxy                          # 修改为明文dns地址，因大部分家宽不支持DoH解析，有需求的用户可以自行替换为 https://1.1.1.1/dns-query#Proxy  https://8.8.8.8/dns-query#Proxy
+    #- 1.1.1.1#Proxy
+
+  # ── DNS 分流 ──
+  nameserver-policy:
+    "rule-set:R-private": [system]
+    "rule-set:R-fakeipfilter": [system, 223.5.5.5, 119.29.29.29]         # Fake-IP 豁免域名
+    "rule-set:R-connectivity": [system, 223.5.5.5, 119.29.29.29]         # 连通性检测 微软/苹果
+    "rule-set:R-cdn-cn": [system, 223.5.5.5, 119.29.29.29]               # 国内 CDN
+    "rule-set:R-bank-cn": [system, 223.5.5.5, 119.29.29.29]              # 国内银行
+    "rule-set:R-securities-cn": [system, 223.5.5.5, 119.29.29.29]        # 国内证券
+    "rule-set:R-finance-cn": [system, 223.5.5.5, 119.29.29.29]           # 国内金融
+    "rule-set:R-ntp-cn": [system, 223.5.5.5, 119.29.29.29]               # 国内 NTP
+    "rule-set:R-wechat": [system, 223.5.5.5, 119.29.29.29]               # 微信
+    "rule-set:R-alipay": [system, 223.5.5.5, 119.29.29.29]               # 支付宝
+    "rule-set:R-netease": [system, 223.5.5.5, 119.29.29.29]              # 网易云音乐
+    "rule-set:R-meituan": [system, 223.5.5.5, 119.29.29.29]              # 美团
+    "rule-set:R-jingdong": [system, 223.5.5.5, 119.29.29.29]             # 京东
+    "rule-set:R-huawei": [system, 223.5.5.5, 119.29.29.29]               # 华为
+    "rule-set:R-xiaomi": [system, 223.5.5.5, 119.29.29.29]               # 小米
+    "rule-set:R-tencent": [system, 223.5.5.5, 119.29.29.29]              # 腾讯
+    "rule-set:R-tendcloud": [system, 223.5.5.5, 119.29.29.29]            # 腾讯云
+    "rule-set:R-tencent-dev": [system, 223.5.5.5, 119.29.29.29]          # 腾讯开发者
+    "rule-set:R-tencent-games": [system, 223.5.5.5, 119.29.29.29]        # 腾讯游戏
+    "rule-set:R-aliyun": [system, 223.5.5.5, 119.29.29.29]               # 阿里云
+    "rule-set:R-aliyun-drive": [system, 223.5.5.5, 119.29.29.29]         # 阿里云盘
+    "rule-set:R-alibaba": [system, 223.5.5.5, 119.29.29.29]              # 阿里巴巴
+    "rule-set:R-alibabacloud": [system, 223.5.5.5, 119.29.29.29]         # 阿里云服务
+    
+  # ── Fake-IP ──
+  fake-ip-filter:
+    - "rule-set:R-private"                   # 局域网 / 私有域名：必须返回真实 IP，否则本地服务无法访问
+    - "rule-set:R-fakeipfilter"              # 标准 Fake-IP 豁免表 NTP / STUN / 音乐 / 游戏等
+    - "rule-set:R-connectivity"              # 连通性探测：返回假 IP 会导致 Windows/macOS 报断网
+    - "rule-set:R-cdn-cn"                    # 国内 CDN：需要真实 IP 做就近调度
+    - "rule-set:R-bank-cn"                   # 国内银行：假 IP 会触发证书校验失败
+    - "rule-set:R-securities-cn"             # 国内证券
+    - "rule-set:R-finance-cn"                # 国内金融
+    - "rule-set:R-ntp-cn"                    # 国内 NTP：假 IP 导致时间同步失败
+    - "rule-set:R-wechat"
+    - "rule-set:R-alipay"
+    - "rule-set:R-netease"
+    - "rule-set:R-meituan"
+    - "rule-set:R-jingdong"
+    - "rule-set:R-huawei"
+    - "rule-set:R-xiaomi"
+    - "rule-set:R-tencent"
+    - "rule-set:R-tendcloud"
+    - "rule-set:R-tencent-dev"
+    - "rule-set:R-aliyun"
+    - "rule-set:R-aliyun-drive"
+    - "rule-set:R-alibaba"
+    - "rule-set:R-alibabacloud"
+     
+# =======================================================
+# 5. 策略组 Proxy Groups
+# =======================================================
+
+# ── 地区节点匹配正则 支持国旗 / 中英文 / 地区代码 ──
+FilterHK: &FilterHK '(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b)'
+FilterTW: &FilterTW '(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b)'
+FilterJP: &FilterJP '(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b)'
+FilterKR: &FilterKR '(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b)'
+FilterSG: &FilterSG '(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b)'
+FilterUS: &FilterUS '(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b)'
+
+# ── 全局节点净化 排除广告 / 流量信息 / 到期时间等非节点内容 ──
+FilterAll: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
+
+# ── Others节点过滤 在净化的基础上，排除垃圾信息 ──
+FilterOthers: &FilterOthers '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
+
+# ── 策略组 ──
+proxy-groups:
+
+  # ── Proxy ──
+  - {name: Proxy,       type: select, proxies: [Auto], include-all: true, filter: *FilterAll, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"}    
+  
+  # ── Auto ──
+  - {name: Auto,        type: url-test, include-all: true, filter: *FilterAll, url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"}                                             # 自动选择低延迟节点                                              # 全部节点手动选择
+
+  # ── Regions ──
+  - {name: HK,          type: select, include-all: true, filter: *FilterHK, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png"}                                                     # 香港节点
+  - {name: TW,          type: select, include-all: true, filter: *FilterTW, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png"}                                                     # 台湾节点
+  - {name: JP,          type: select, include-all: true, filter: *FilterJP, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png"}                                                     # 日本节点
+  - {name: KR,          type: select, include-all: true, filter: *FilterKR, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png"}                                                     # 韩国节点
+  - {name: SG,          type: select, include-all: true, filter: *FilterSG, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png"}                                                     # 新加坡节点
+  - {name: US,          type: select, include-all: true, filter: *FilterUS, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png"}                                                     # 美国节点
+  - {name: OTHERS1,     type: select, include-all: true, filter: *FilterOthers, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}                                             # 其他节点 A
+  - {name: OTHERS2,     type: select, include-all: true, filter: *FilterOthers, icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}                                             # 其他节点 B
+  
+  # ── Proxy App ──
+  - {name: OpenAI,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png"}          # OpenAI / ChatGPT
+  - {name: Anthropic,   type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png"}           # Anthropic / Claude
+  - {name: AI,          type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png"}               # AI 杂项 (Perplexity / Groq / Cerebras / HuggingFace / Cursor / ElevenLabs / ComfyUI / 兜底)
+  - {name: Crypto,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cryptocurrency.png"}           # 加密货币
+  - {name: YouTube,     type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png"}          # YouTube
+  - {name: Google,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png"}           # Google 全家桶
+  - {name: Cloudflare,  type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png"}       # Cloudflare
+  - {name: Amazon,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Amazon.png"}           # Amazon
+  - {name: GitHub,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png"}           # GitHub
+  - {name: Microsoft,   type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png"}        # Microsoft 全家桶
+  - {name: Adobe,       type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}            # Adobe 全家桶
+  - {name: Apple,       type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png"}            # Apple 全家桶
+  - {name: Android,     type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png"}           # Android / Google Play
+
+  - {name: X,           type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/X.png"}                # X / Twitter / 马斯克系
+  - {name: Meta,        type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Facebook.png"}        # Meta (Facebook / Instagram / WhatsApp)
+  - {name: Telegram,    type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png"}         # Telegram
+  - {name: Discord,     type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Discord.png"}          # Discord
+  - {name: Social,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}           # 社交杂项 (Reddit / Tumblr / LINE)
+
+  - {name: TikTok,      type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/TikTok.png"}           # TikTok / 字节跳动海外
+  - {name: Netflix,     type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png"}          # Netflix
+  - {name: Spotify,     type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png"}          # Spotify
+  - {name: Media,       type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Media.png"}            # 流媒体杂项 (Hulu / Prime Video / DAZN / HBO / Disney+ / Vimeo / Twitch / Rumble / Plex)
+  - {name: Bilibili,    type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili.png"}         # Bilibili
+  
+  - {name: Steam,       type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Steam.png"}            # Steam
+  - {name: Epic,        type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Epic_Games.png"}             # Epic Games
+  - {name: TapTap,      type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png"}           # TapTap
+  
+  - {name: Speedtest,   type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}        # 测速
+ 
+  # ── R18 默认注释 ──
+  #- {name: R18,         type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Pornhub.png"}                   # 成人内容
+
+  # ── CN / Final ──
+  - {name: CN,          type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}               # 默认国内直连
+  - {name: Final,       type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS1, OTHERS2], icon: "https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}            # 未匹配流量
+
+# =======================================================
+# 6. 规则源 Rule Providers
+# =======================================================
+
+# ===== 锚点 Providers =====
+rule-anchor:
+  ip:           &ip           {type: http, behavior: ipcidr,    format: yaml, interval: 86400, proxy: Proxy}
+  domain:       &domain       {type: http, behavior: classical, format: yaml, interval: 86400, proxy: Proxy}
+  yaml:         &yaml         {type: http, behavior: classical, format: yaml, interval: 86400, proxy: Proxy}
+  yaml-ip:      &yaml-ip      {type: http, behavior: classical, format: yaml, interval: 86400, proxy: Proxy}
+  yaml-classic: &yaml-classic {type: http, behavior: classical, format: yaml, interval: 86400, proxy: Proxy}
+  list-class:   &list-class   {type: http, behavior: classical, format: yaml, interval: 86400, proxy: Proxy}
+
+# ===== 远程规则集 Remote Rule =====
+rule-providers:
+
+  # ══════════════════════════════════════════
+  # 1.REJECT
+  # ══════════════════════════════════════════
+  R-icloudprivaterelay: {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}             # iCloud私有中继 → REJECT
+  R-reject:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}
+  R-reject-ip:          {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}
+  R-ads:                {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}       # 全量广告拦截 → REJECT
+  R-ads-add:            {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanEasyList.yaml"}
+  R-ads-add-ip:         {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}
+  R-httpdns-cn:         {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/ChinaDNS.yaml"}          # 国内HTTPDNS劫持 → REJECT
+  R-win-spy:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanProgramAD.yaml"}                        # Windows隐私追踪 → REJECT
+
+  # ══════════════════════════════════════════
+  # 2.LAN
+  # ══════════════════════════════════════════
+  R-private:            {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/LocalAreaNetwork.yaml"}                      # 内网域名 → DIRECT
+  R-private-ip:         {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/LocalAreaNetwork.yaml"}                         # 内网IP地址 → DIRECT
+  R-fakeipfilter:       {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/LocalAreaNetwork.yaml"}                 # FakeIP过滤 → DIRECT
+  R-sniffer-skip-ip:    {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/LocalAreaNetwork.yaml"}              # 嗅探豁免 IP 列表
+  R-connectivity:       {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/UnBan.yaml"}           # 网络连通性检测 → DIRECT
+
+  # ══════════════════════════════════════════
+  # 3.Proxy
+  # ══════════════════════════════════════════
+
+  # ── YouTube ──
+  R-youtube:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/YouTube.yaml"}                        # YouTube
+  
+  # ── Google ──
+  R-google:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                         # Google全家桶
+  R-google-ip:          {<<: *yaml-classic,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GoogleCNProxyIP.yaml"} 
+  R-FCM:                {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GoogleFCM.yaml"}                      # Firebase推送
+  R-gemini:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Gemini.yaml"}                  # Gemini AI
+  R-deepmind:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                # DeepMind
+  R-google-play:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                    # Google Play
+  R-google-play-cn:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GoogleCN.yaml"}                 # Google Play国内节点 → DIRECT
+  R-google-scholar:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Scholar.yaml"}                 # Google学术
+  R-firebase:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                       # Firebase开发平台
+  R-firebase-cn:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GoogleCN.yaml"}                    # Firebase国内节点 → DIRECT
+  R-fonts:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                          # Google字体
+  R-golang:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Developer.yaml"}                         # Go语言官方
+  R-dart:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Developer.yaml"}                           # Dart语言
+  R-v8:                 {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Developer.yaml"}                             # V8引擎
+  R-goproxy:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Developer.yaml"}                        # Go模块代理
+  R-amp:                {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                            # Google AMP
+  R-amp-cn:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GoogleCN.yaml"}                         # Google AMP国内节点 → DIRECT
+  
+  # ── Adobe ──
+  R-adobe-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Adobe.yaml"}                       # Adobe国内节点 → DIRECT
+  R-adobe-activation:   {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Adobe.yaml"}               # Adobe激活服务
+  R-adobe:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Adobe.yaml"}                          # Adobe全家桶
+
+  # ── OpenAI ──
+  R-openai:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/OpenAi.yaml"}                         # OpenAI
+  
+  # ── Anthropic ──
+  R-anthropic:          {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Claude.yaml"}                    # Anthropic / Claude
+  R-anthropic-ip:       {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/ClaudeAI.yaml"}
+  
+  # ── AI ──
+  R-perplexity:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                     # Perplexity AI搜索
+  R-groq:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                           # Groq AI推理
+  R-cerebras:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                       # Cerebras AI
+  R-huggingface:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                    # Hugging Face
+  R-cursor:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                         # Cursor AI编辑器
+  R-elevenlabs:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                     # ElevenLabs AI语音
+  R-comfy:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                          # ComfyUI
+  R-comfy-launcher:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}              # ComfyUI启动器
+  R-ai:                 {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}         # AI服务兜底
+  
+  # ── Crypto ──
+  R-crypto:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Crypto.yaml"}        # 加密货币
+
+  # ── GitHub ──
+  R-github:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Github.yaml"}                       # GitHub / VSCode
+  R-github1s:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Github.yaml"}                       # GitHub在线VSCode
+  R-github-copilot:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                 # GitHub Copilot
+
+  # ── Discord ──
+  R-discord:            {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Discord.yaml"}                      # Discord
+  
+  # ── Telegram ──
+  R-telegram:           {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Telegram.yaml"}                     # Telegram
+  R-telegram-ip:        {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Telegram.yaml"}                  # Telegram IP
+  
+  # ── Social ──
+  R-reddit:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Reddit.yaml"}                         # Reddit
+  R-tumblr:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                         # Tumblr
+  R-line:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/LineTV.yaml"}                           # LINE
+
+  # ── Meta ──
+  R-meta:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Facebook.yaml"}                           # Facebook / Instagram / Facebook Developers / WhatsApp / hreads / Messenger / Graph / Analytics
+  R-meta-ads:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}                       # Meta广告 → REJECT
+
+  # ── Elon Musk ──
+  R-x-ads:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}                          # X广告 → REJECT
+  R-twitter-ads:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}                    # Twitter广告 → REJECT
+  R-x:                  {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Twitter.yaml"}                              # X补充域名
+  R-twitter:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Twitter.yaml"}                        # Twitter/X
+  R-twitter-ip:         {<<: *yaml-classic,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Twitter.yaml"}                          # Twitter IP
+  R-xai:                {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}                            # xAI / Grok
+  R-spacex:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                         # SpaceX
+  R-neuralink:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # Neuralink
+  R-theboringcompany:   {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}               # The Boring Company
+  R-tesla:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                          # Tesla
+
+  # ── TikTok / 字节跳动 ──
+  R-tiktok:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/TikTok.yaml"}                       # TikTok → 代理
+  
+  R-bytedance-ai-!cn:   {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/AI.yaml"}               # 字节AI海外(豆包/Coze国际版) → 代理
+  R-bytedance-!cn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/ByteDance.yaml"}                  # 字节海外域名 → 代理
+
+  R-bytedance:          {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/ByteDance.yaml"}                    # 字节全量兜底(抖音/飞书/头条) → DIRECT
+
+  # ── Netflix ──
+  R-netflix:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Netflix.yaml"}                        # Netflix
+  R-netflix-ip:         {<<: *yaml-classic,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/NetflixIP.yaml"}                          # Netflix IP
+  
+  # ── Media ──
+  R-hulu:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/HuluJapan.yaml"}                           # Hulu
+  R-primevideo:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Amazon.yaml"}                     # Prime Video
+  R-dazn:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyMedia.yaml"}                           # DAZN体育直播
+  R-hbo:                {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/HBO.yaml"}                            # HBO
+  R-disney:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/DisneyPlus.yaml"}                         # Disney+
+  R-vimeo:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyMedia.yaml"}                          # Vimeo
+  R-twitch:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Twitch.yaml"}                         # Twitch
+  R-rumble:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyMedia.yaml"}                         # Rumble
+  R-plex:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyMedia.yaml"}                           # Plex媒体服务器
+
+  # ── Spotify ──
+  R-spotify:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Spotify.yaml"}                        # Spotify
+  R-spotify-ads:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}                    # Spotify广告 → REJECT
+
+  # ── Steam ──
+  R-steam:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Steam.yaml"}                          # Steam
+  R-steam-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/SteamCN.yaml"}                       # Steam国内节点 → DIRECT
+
+  R-steamunlocked:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Steam.yaml"}                  # SteamUnlocked游戏资源
+  R-steaminventory:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Steam.yaml"}           # Steam库存助手
+  
+  # ── Epic ──
+  R-epicgames:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Epic.yaml"}                      # Epic Games  
+  # ── TapTap ──
+  R-taptap:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/TapTap.yaml"}                         # TapTap
+  R-taptap-!cn:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/TapTap.yaml"}                     # TapTap海外版
+
+  # ── Bilibili ──
+  R-bilibili-!cn:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/BilibiliHMT.yaml"}                   # B站海外版 → 代理
+  R-bilibili-cdn-!cn:   {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/BilibiliHMT.yaml"}               # B站海外CDN → 代理
+  R-biliintl:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/BilibiliHMT.yaml"}                       # B站国际版
+  R-bilibili:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Bilibili.yaml"}                       # B站主域名 → DIRECT
+  R-bilibili-ip:        {<<: *yaml-classic,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Bilibili.yaml"}                    # B站 IP → DIRECT
+  R-bilibili-game:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Bilibili.yaml"}                  # B站游戏 → DIRECT
+  R-bilibili-cdn:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Bilibili.yaml"}                   # B站CDN → DIRECT
+
+  # ── Speedtest ──
+  R-speedtest:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                # Speedtest测速
+  
+  # ── Nodeseek ──
+  R-nodeseek:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                       # nodeseek自建服务
+  
+  # ── Cloudflare ──
+  R-cloudflare:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # Cloudflare
+  R-cloudflare-ip:      {<<: *yaml-classic,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                       # Cloudflare IP
+  R-cloudflare-ipfs:    {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                # Cloudflare IPFS网关
+  R-cloudflare-cn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                  # Cloudflare中国域名 → DIRECT
+
+  # ── Aws ──
+  R-aws:                {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Amazon.yaml"}                          # AWS
+  R-aws-cn:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                       # AWS中国域名 → DIRECT
+ 
+  # ── Microsoft ──
+  R-microsoft:          {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Microsoft.yaml"}                     # Microsoft全家桶
+  R-microsoft-cn:       {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Microsoft.yaml"}                  # Microsoft国内节点 → DIRECT
+
+  # ── Apple ──
+  R-icloud:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                         # iCloud
+  R-icloud-cn:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                      # iCloud国内节点(云上贵州) → DIRECT
+  R-itunes:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                         # iTunes
+  R-itunes-cn:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                      # iTunes国内节点 → DIRECT
+  R-apple-pki:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                      # Apple证书服务(国际)
+  R-apple:              {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                        # Apple全家桶
+  R-apple-ip:           {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                     # Apple IP段
+  R-apple-update:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                   # iOS/macOS系统更新 → DIRECT
+  R-apple-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                       # Apple中国专属域名 → DIRECT
+  R-apple-at-cn:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                       # Apple国内服务补充 → DIRECT
+  R-apple-dev-cn:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                   # Apple开发者国内节点 → DIRECT
+  R-appleakamai:        {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Apple.yaml"}                  # Apple akamai节点
+  
+  # ── Android ──
+  R-android:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Google.yaml"}                        # Android系统相关
+  R-fdroid:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                        # F-Droid开源应用商店
+  R-apkpure:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                        # APKPure
+  R-apkmirror:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # APKMirror
+  R-apkcombo:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                       # APKCombo
+  
+  # ── CN App ──  
+  R-wechat:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Wechat.yaml"}
+  R-wechat-ip:          {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Wechat.yaml"}
+  
+  R-alipay:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}
+  
+  R-netease:            {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/NetEase.yaml"}
+  R-meituan:            {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}  
+
+  R-jingdong:           {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}
+  R-jingdongcloud-ip:   {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}
+  
+  R-duowan:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                       # 多玩游戏/yy语音
+  R-duowan-ip:          {<<: *yaml-classic,url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}
+  
+  R-huawei:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/HuaWei.yaml"}
+  R-xiaomi:             {<<: *yaml-classic,   url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}
+  
+  R-tencent:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Tencent.yaml"}
+  R-tendcloud:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Tencent.yaml"}
+  R-tencent-dev:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Tencent.yaml"}
+  R-tencent-games:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Tencent.yaml"}
+  R-aliyun:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Alibaba.yaml"}
+  R-aliyun-drive:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Alibaba.yaml"}
+  R-alibaba:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Alibaba.yaml"}
+  R-alibabacloud:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Alibaba.yaml"}
+  
+  # ── 硬件 / 杂项 ──
+  R-nvidia-cn:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                      # Nvidia国内节点 → DIRECT
+  R-amd-cn:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                         # AMD国内节点 → DIRECT
+  R-intel-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                       # Intel国内节点 → DIRECT
+  R-synology-cn:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                    # 群晖国内节点 → DIRECT
+  R-amazon-cn:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                      # Amazon国内节点 → DIRECT
+
+  # ══════════════════════════════════════════
+  # 4.Final
+  # ══════════════════════════════════════════
+
+  # ── Category ──
+  R-cdn-cn:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                # 国内CDN → DIRECT
+  R-bank-cn:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}               # 国内银行 → DIRECT
+  R-securities-cn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}         # 国内证券 → DIRECT
+  R-finance-cn:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}            # 国内金融 → DIRECT
+  R-ntp-cn:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                # 国内NTP时间服务 → DIRECT
+  R-netdisk-cn:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}            # 国内网盘 → DIRECT
+  R-games-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/GameDownload.yaml"}              # 国内游戏 → DIRECT
+  R-getui:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                          # 国内个推推送服务 → DIRECT
+  R-globalsign@cn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                  # Globalsign国内节点 → DIRECT
+  R-digicert@cn:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                    # Digicert国内节点 → DIRECT
+  
+  # ── Final ──
+  geolocation-!cn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                # 非中国域名兜底 → 代理
+  geosite-cn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaDomain.yaml"}                             # 中国域名兜底 → DIRECT
+  geoip-cn:             {<<: *ip,     url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ChinaIp.yaml"}                               # 中国IP兜底 → DIRECT
+
+  # ══════════════════════════════════════════
+  # 5.R18 默认注释
+  # ══════════════════════════════════════════
+
+  # ── 视频、直播与信息聚合 ──
+  # R-54647:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # 54647.com — 日本成人视频平台
+  # R-928plus:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                    # 928plus.com — 成人视频
+  # R-akiko:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # akiko — 日本 AV 女优站
+  # R-avmoo:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # avmoo.com — AV 影片数据库
+  # R-baltamatica:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                # baltamatica — 成人视频
+  # R-bdsmhub:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                    # bdsmhub.com — BDSM 主题成人视频
+  # R-boboporn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                   # boboporn — 成人视频
+  # R-bongacams:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                  # bongacams.com — 成人直播平台
+  # R-braveux:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                    # braveux — 成人视频
+  # R-brazzers:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                   # brazzers.com — 美国知名成人制片公司
+  # R-camwhores:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                  # camwhores.tv — 直播 / 自拍成人视频
+  # R-cavporn:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # cavporn — 成人视频
+  # R-chatwhores:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                 # chatwhores — 成人直播
+  # R-clips4sale:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                 # clips4sale.com — 独立创作者成人视频平台
+
+  # R-coomer:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # coomer.su — OF/Fansly 内容聚合
+  # R-digitalplayground:  {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}          # digitalplayground.com — 美国成人制片公司
+  # R-dwion:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # dwion — 成人视频
+  # R-fans66:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # fans66 — 华人粉丝内容平台
+  # R-fansta:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # fansta — 成人内容订阅平台
+  # R-heyzo:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # heyzo.com — 日本无码 AV 平台
+  # R-jable:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                      # jable.tv — 日本 AV 影片聚合（繁中字幕）
+  # R-japonx:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Japonx.yaml"}                     # japonx.com — 日本 AV 视频网站
+
+  # R-javbus:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                     # javbus.com — 日本 AV 数据库 / 磁链索引
+  # R-javcc:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                      # javcc — 日本 AV 数据库
+  # R-javdb:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                      # javdb.com — 日本 AV 数据库（评分 / 磁链）
+  # R-javwide:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # javwide — 日本 AV 相关
+
+  # R-justav:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # justav — 日本 AV 视频网站
+  # R-kubakuba:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # kubakuba — 成人视频
+  # R-lethalhardcore:     {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}             # lethalhardcore.com — 美国成人制片公司
+  # R-missav:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                     # missav.com — 日本 AV 在线播放
+  # R-mydirtyhobby:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}               # mydirtyhobby.com — 德国业余成人内容平台
+  # R-netflav:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                    # netflav.com — 日本 AV 在线流媒体
+  # R-pingsx:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # pingsx — 成人视频
+  # R-playboy:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # playboy.com — 成人杂志 / 内容平台
+  # R-pornhub:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Pornhub.yaml"}                    # pornhub.com — 全球最大成人视频平台
+  # R-pornpros:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                   # pornpros.com — 美国成人制片公司
+  # R-realitykings:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}               # realitykings.com — 美国成人制片公司
+  # R-redtube:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # redtube.com — 成人视频平台
+  # R-sehuatang:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                  # 色花堂 — 华人成人论坛 / 图片
+  # R-smtiaojiaoshi:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}              # 丝袜调教师 — 成人视频 / 内容
+  # R-spankbang:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                  # spankbang.com — 成人视频平台
+  # R-swag:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                       # swag.live — 台湾成人直播 / 视频平台
+  # R-theporndude:        {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                # theporndude.com — 成人网站导航 / 评测
+  # R-tube8:              {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                      # tube8.com — 成人视频平台（MindGeek 旗下）
+
+  # R-xhamster:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # xhamster.com — 成人视频平台
+  # R-xhamster-ads:       {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/BanAD.yaml"}               # xHamster 广告域名 → 拦截
+
+  # R-xingkongwuxianmedia:{<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}        # 星空无限传媒 — 国产成人视频制作公司
+  # R-xnxx:               {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                       # xnxx.com — 成人视频平台
+  # R-xvideos:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # xvideos.com — 成人视频平台
+
+  # R-youjizz:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # youjizz.com — 成人视频平台
+  # R-youporn:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # youporn.com — 成人视频平台（MindGeek 旗下）
+
+  # ── 漫画、图片与阅读社区 ──
+  # R-18comic:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                    # 18comic.vip — 禁漫天堂（成人漫画）
+  # R-boylove:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                    # boylove — BL 成人漫画 / 小说
+  # R-ehentai:            {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/EHGallery.yaml"}                    # e-hentai.org — 成人同人漫画聚合
+
+  # R-hentaichen:         {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                 # hentaichen — 中文成人漫画
+  # R-hentaivn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                   # hentaivn — 越南语成人漫画
+
+  # R-metart:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # metart.com — 艺术写真 / 成人图片平台
+  # R-nudevista:          {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                  # nudevista.com — 成人图片 / 视频搜索引擎
+  # R-truyen-hentai:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}              # truyen-hentai — 越南语成人漫画
+  # R-xingrz:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # xingrz — 成人图片 / 漫画
+
+  # ── 游戏平台与制作公司 ──
+  # R-awempire:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # awempire.com — 成人娱乐集团（旗下多品牌）
+  # R-dmm-porn:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}                   # DMM 成人内容 — 日本成人数字内容平台
+
+  # R-illgames:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # illgames — 日本成人游戏制作商（前 Illusion）
+  # R-illusion-nonoff:    {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}       # Illusion 非官方资源站
+  # R-illusion:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # Illusion — 日本知名成人游戏制作商
+
+  # R-mindgeek-porn:      {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/Ruleset/Porn.yaml"}              # MindGeek 成人内容（旗下含 PH / RedTube / YouPorn）
+  # R-mindgeek:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # mindgeek.com — 成人娱乐集团（Aylo 前身）
+
+  # R-nutaku:             {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                     # nutaku.net — 成人游戏平台
+  # R-pinkcore:           {<<: *yaml-classic, url: "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Providers/ProxyLite.yaml"}                   # pinkcore — 成人内容
+
+# =======================================================
+# 7. 分流规则 Rules
+# =======================================================
+rules:
+
+  # ══════════════════════════════════════════
+  # 1.REJECT
+  # ══════════════════════════════════════════
+  - RULE-SET,R-icloudprivaterelay,REJECT-DROP,no-resolve                # iCloud 私有中继
+  - RULE-SET,R-reject,REJECT-DROP 
+  - RULE-SET,R-reject-ip,REJECT-DROP,no-resolve
+  - RULE-SET,R-ads,REJECT-DROP                                          # 全量广告拦截
+  - RULE-SET,R-ads-add,REJECT-DROP                                      # 增强广告拦截
+  - RULE-SET,R-ads-add-ip,REJECT-DROP,no-resolve                        # 增强广告拦截 IP
+  - RULE-SET,R-httpdns-cn,REJECT-DROP                                   # 国内 HTTPDNS 劫持
+  - RULE-SET,R-win-spy,REJECT-DROP                                      # Windows 隐私追踪
+
+  # ══════════════════════════════════════════
+  # 2.LAN
+  # ══════════════════════════════════════════
+  - RULE-SET,R-private-ip,DIRECT                                   # 内网 IP 地址  
+  - RULE-SET,R-private,DIRECT                                      # 内网域名
+  - RULE-SET,R-fakeipfilter,DIRECT                                 # FakeIP 过滤
+  - RULE-SET,R-connectivity,DIRECT                                 # 网络连通性检测
+
+  # ══════════════════════════════════════════
+  # 3.Proxy
+  # ══════════════════════════════════════════
+
+  # ── OpenAI ──
+  - RULE-SET,R-openai,OpenAI                                       # OpenAI
+
+  # ── Anthropic ──
+  - RULE-SET,R-anthropic,Anthropic                                 # Anthropic / Claude
+  - RULE-SET,R-anthropic-ip,Anthropic
+
+  # ── AI ──
+  - RULE-SET,R-perplexity,AI                                       # Perplexity AI 搜索
+  - RULE-SET,R-groq,AI                                             # Groq AI 推理
+  - RULE-SET,R-cerebras,AI                                         # Cerebras AI
+  - RULE-SET,R-huggingface,AI                                      # Hugging Face
+  - RULE-SET,R-cursor,AI                                           # Cursor AI 编辑器
+  - RULE-SET,R-elevenlabs,AI                                       # ElevenLabs AI 语音
+  - RULE-SET,R-comfy,AI                                            # ComfyUI
+  - RULE-SET,R-comfy-launcher,AI                                   # ComfyUI 启动器
+  - RULE-SET,R-ai,AI                                               # AI 聊天服务兜底
+  
+  # ── Crypto ──
+  - RULE-SET,R-crypto,Crypto                                       # 加密货币
+  
+  # ── GitHub ──
+  - RULE-SET,R-github,GitHub                                       # GitHub
+  - RULE-SET,R-github1s,GitHub                                     # GitHub 在线 VSCode
+  - RULE-SET,R-github-copilot,GitHub                               # GitHub Copilot
+
+  # ── Discord ──
+  - RULE-SET,R-discord,Discord                                     # Discord
+
+  # ── Telegram ──
+  - RULE-SET,R-telegram,Telegram                                   # Telegram
+  - RULE-SET,R-telegram-ip,Telegram,no-resolve                     # Telegram IP
+
+  # ── Social ──
+  - RULE-SET,R-reddit,Social                                       # Reddit
+  - RULE-SET,R-tumblr,Social                                       # Tumblr
+  - RULE-SET,R-line,Social                                         # LINE
+
+  # ── Meta ──
+  - RULE-SET,R-meta-ads,REJECT-DROP                                     # Meta 广告
+  - RULE-SET,R-meta,Meta                                           # Facebook / Instagram / Facebook Developers / WhatsApp / hreads / Messenger / Graph / Analytics
+
+  # ── Elon Musk ──
+  - RULE-SET,R-x-ads,REJECT-DROP                                        # X 广告
+  - RULE-SET,R-twitter-ads,REJECT-DROP                                  # Twitter 广告
+  - RULE-SET,R-xai,X                                               # xAI / Grok
+  - RULE-SET,R-x,X                                                 # X 补充域名
+  - RULE-SET,R-twitter,X                                           # Twitter/X
+  - RULE-SET,R-twitter-ip,X,no-resolve                             # Twitter IP
+  - RULE-SET,R-spacex,X                                            # SpaceX
+  - RULE-SET,R-neuralink,X                                         # Neuralink
+  - RULE-SET,R-theboringcompany,X                                  # The Boring Company
+  - RULE-SET,R-tesla,X                                             # Tesla
+
+  # ── TikTok / 字节跳动 ──
+  - RULE-SET,R-tiktok,TikTok                                       # TikTok
+  - RULE-SET,R-bytedance-ai-!cn,TikTok                             # 字节 AI 海外（豆包/Coze 国际版）
+  - RULE-SET,R-bytedance-!cn,TikTok                                # 字节海外域名
+  - RULE-SET,R-bytedance,CN                                        # 字节全量兜底（抖音/飞书/头条）
+
+  # ── Netflix ──
+  - RULE-SET,R-netflix,Netflix                                     # Netflix
+  - RULE-SET,R-netflix-ip,Netflix,no-resolve                       # Netflix IP
+  
+  # ── Media ──
+  - RULE-SET,R-hulu,Media                                          # Hulu
+  - RULE-SET,R-primevideo,Media                                    # Prime Video
+  - RULE-SET,R-dazn,Media                                          # DAZN 体育直播
+  - RULE-SET,R-hbo,Media                                           # HBO
+  - RULE-SET,R-disney,Media                                        # Disney+
+  - RULE-SET,R-vimeo,Media                                         # Vimeo
+  - RULE-SET,R-twitch,Media                                        # Twitch
+  - RULE-SET,R-rumble,Media                                        # Rumble
+  - RULE-SET,R-plex,Media                                          # Plex
+
+  # ── Spotify ──
+  - RULE-SET,R-spotify-ads,REJECT-DROP                                  # Spotify 广告
+  - RULE-SET,R-spotify,Spotify                                     # Spotify
+
+  # ── Steam ──
+  - RULE-SET,R-steam-cn,Steam                                      # Steam 国内节点
+  - RULE-SET,R-steam,Steam                                         # Steam
+  - RULE-SET,R-steamunlocked,Steam                                 # SteamUnlocked
+  - RULE-SET,R-steaminventory,Steam                                # Steam 库存助手
+
+  # ── Epic ──
+  - RULE-SET,R-epicgames,Epic                                      # Epic Games
+
+  # ── TapTap ──
+  - RULE-SET,R-taptap,TapTap                                       # TapTap（国内版）
+  - RULE-SET,R-taptap-!cn,TapTap                                   # TapTap 海外版
+
+  # ── Bilibili ──
+  - RULE-SET,R-bilibili-!cn,Bilibili                               # B 站海外版
+  - RULE-SET,R-bilibili-cdn-!cn,Bilibili                           # B 站海外 CDN
+  - RULE-SET,R-biliintl,Bilibili                                   # B 站国际版
+  - RULE-SET,R-bilibili,Bilibili                                   # B 站主域名
+  - RULE-SET,R-bilibili-ip,Bilibili,no-resolve                     # B 站 IP
+  - RULE-SET,R-bilibili-game,Bilibili                              # B 站游戏
+  - RULE-SET,R-bilibili-cdn,Bilibili                               # B 站 CDN
+
+  # ── Speedtest ──
+  - RULE-SET,R-speedtest,Speedtest                                 # Speedtest
+  
+  # ── Nodeseek ──
+  - RULE-SET,R-nodeseek,Proxy                                      # NodeSeek
+  
+  # ── YouTube ──
+  - RULE-SET,R-youtube,YouTube                                     # YouTube
+  
+  # ── Google ──
+  - RULE-SET,R-google-play-cn,Google                               # Google Play 国内节点
+  - RULE-SET,R-firebase-cn,Google                                  # Firebase 国内节点
+  - RULE-SET,R-amp-cn,Google                                       # AMP 国内节点
+  - RULE-SET,R-gemini,Google                                       # Gemini AI
+  - RULE-SET,R-google,Google                                       # Google 全家桶
+  - RULE-SET,R-google-ip,Google,no-resolve                         # Google IP
+  - RULE-SET,R-FCM,Google                                          # Firebase 推送
+  - RULE-SET,R-deepmind,Google                                     # DeepMind
+  - RULE-SET,R-google-play,Google                                  # Google Play
+  - RULE-SET,R-google-scholar,Google                               # Google 学术
+  - RULE-SET,R-firebase,Google                                     # Firebase 开发平台
+  - RULE-SET,R-fonts,Google                                        # Google 字体
+  - RULE-SET,R-golang,Google                                       # Go 语言官方
+  - RULE-SET,R-dart,Google                                         # Dart 语言
+  - RULE-SET,R-v8,Google                                           # V8 引擎
+  - RULE-SET,R-goproxy,Google                                      # Go 模块代理
+  - RULE-SET,R-amp,Google                                          # Google AMP
+
+  # ── Cloudflare ──
+  - RULE-SET,R-cloudflare-cn,CN                                    # Cloudflare 中国域名
+  - RULE-SET,R-cloudflare,Cloudflare                               # Cloudflare
+  - RULE-SET,R-cloudflare-ipfs,Cloudflare                          # Cloudflare IPFS 网关
+  - RULE-SET,R-cloudflare-ip,Cloudflare,no-resolve                 # Cloudflare IP
+
+  # ── Aws ──
+  - RULE-SET,R-aws,Amazon                                          # AWS
+  - RULE-SET,R-aws-cn,CN                                           # AWS 中国域名
+
+  # ── Microsoft ──
+  - RULE-SET,R-microsoft-cn,Microsoft                              # Microsoft 国内节点
+  - RULE-SET,R-microsoft,Microsoft                                 # Microsoft 全家桶
+
+  # ── Apple ──
+  - RULE-SET,R-icloud-cn,Apple                                     # iCloud 国内节点（云上贵州）
+  - RULE-SET,R-itunes-cn,Apple                                     # iTunes 国内节点
+  - RULE-SET,R-apple-pki,Apple                                     # Apple 证书服务
+  - RULE-SET,R-apple-update,Apple                                  # iOS/macOS 系统更新
+  - RULE-SET,R-apple-cn,Apple                                      # Apple 中国专属域名
+  - RULE-SET,R-apple-at-cn,Apple                                   # Apple 国内服务补充
+  - RULE-SET,R-apple-dev-cn,Apple                                  # Apple 开发者国内节点
+  - RULE-SET,R-icloud,Apple                                        # iCloud
+  - RULE-SET,R-itunes,Apple                                        # iTunes
+  - RULE-SET,R-apple,Apple                                         # Apple 全家桶
+  - RULE-SET,R-appleakamai,Apple                                   # Apple akamai节点
+  - RULE-SET,R-apple-ip,Apple,no-resolve                           # Apple IP 段
+
+  # ── Android ──
+  - RULE-SET,R-android,Android                                     # Android 系统相关
+  - RULE-SET,R-fdroid,Android                                      # F-Droid
+  - RULE-SET,R-apkpure,Android                                     # APKPure
+  - RULE-SET,R-apkmirror,Android                                   # APKMirror
+  - RULE-SET,R-apkcombo,Android                                    # APKCombo
+
+  # ── Adobe ──
+  - RULE-SET,R-adobe-cn,Adobe                                      # Adobe 国内节点
+  - RULE-SET,R-adobe-activation,Adobe                              # Adobe 激活服务
+  - RULE-SET,R-adobe,Adobe                                         # Adobe 全家桶
+  
+  # ── CN App ──
+  - RULE-SET,R-wechat,CN
+  - RULE-SET,R-wechat-ip,CN,no-resolve
+  - RULE-SET,R-alipay,CN
+  - RULE-SET,R-netease,CN
+  - RULE-SET,R-meituan,CN
+  - RULE-SET,R-jingdong,CN
+  - RULE-SET,R-jingdongcloud-ip,CN,no-resolve
+  - RULE-SET,R-duowan,CN
+  - RULE-SET,R-duowan-ip,CN,no-resolve
+  - RULE-SET,R-huawei,CN
+  - RULE-SET,R-xiaomi,CN
+  - RULE-SET,R-tencent,CN
+  - RULE-SET,R-tendcloud,CN
+  - RULE-SET,R-tencent-dev,CN
+  - RULE-SET,R-tencent-games,CN
+  - RULE-SET,R-aliyun,CN
+  - RULE-SET,R-aliyun-drive,CN
+  - RULE-SET,R-alibaba,CN
+  - RULE-SET,R-alibabacloud,CN
+
+  # ── 硬件 / 杂项 ──
+  - RULE-SET,R-nvidia-cn,CN                                        # Nvidia 国内节点
+  - RULE-SET,R-amd-cn,CN                                           # AMD 国内节点
+  - RULE-SET,R-intel-cn,CN                                         # Intel 国内节点
+  - RULE-SET,R-synology-cn,CN                                      # 群晖国内节点
+  - RULE-SET,R-amazon-cn,CN                                        # Amazon国内节点
+  
+  # ══════════════════════════════════════════
+  # 5.R18 默认注释
+  # ══════════════════════════════════════════
+  
+  # ── 视频、直播与信息聚合 ──
+  # - RULE-SET,R-54647,R18                                         # 54647.com — 日本成人视频平台
+  # - RULE-SET,R-928plus,R18                                       # 928plus.com — 成人视频
+  # - RULE-SET,R-akiko,R18                                         # akiko — 日本 AV 女优站
+  # - RULE-SET,R-avmoo,R18                                         # avmoo.com — AV 影片数据库
+  # - RULE-SET,R-baltamatica,R18                                   # baltamatica — 成人视频
+  # - RULE-SET,R-bdsmhub,R18                                       # bdsmhub.com — BDSM 主题成人视频
+  # - RULE-SET,R-boboporn,R18                                      # boboporn — 成人视频
+  # - RULE-SET,R-bongacams,R18                                     # bongacams.com — 成人直播平台
+  # - RULE-SET,R-braveux,R18                                       # braveux — 成人视频
+  # - RULE-SET,R-brazzers,R18                                      # brazzers.com — 美国知名成人制片公司
+  # - RULE-SET,R-camwhores,R18                                     # camwhores.tv — 直播 / 自拍成人视频
+  # - RULE-SET,R-cavporn,R18                                       # cavporn — 成人视频
+  # - RULE-SET,R-chatwhores,R18                                    # chatwhores — 成人直播
+  # - RULE-SET,R-clips4sale,R18                                    # clips4sale.com — 独立创作者成人视频平台
+  # - RULE-SET,R-coomer,R18                                        # coomer.su — OF/Fansly 内容聚合
+  # - RULE-SET,R-digitalplayground,R18                             # digitalplayground.com — 美国成人制片公司
+  # - RULE-SET,R-dwion,R18                                         # dwion — 成人视频
+  # - RULE-SET,R-fans66,R18                                        # fans66 — 华人粉丝内容平台
+  # - RULE-SET,R-fansta,R18                                        # fansta — 成人内容订阅平台
+  # - RULE-SET,R-heyzo,R18                                         # heyzo.com — 日本无码 AV 平台
+  # - RULE-SET,R-jable,R18                                         # jable.tv — 日本 AV 影片聚合（繁中字幕）
+  # - RULE-SET,R-japonx,R18                                        # japonx.com — 日本 AV 视频网站
+  # - RULE-SET,R-javbus,R18                                        # javbus.com — 日本 AV 数据库 / 磁链索引
+  # - RULE-SET,R-javcc,R18                                         # javcc — 日本 AV 数据库
+  # - RULE-SET,R-javdb,R18                                         # javdb.com — 日本 AV 数据库（评分 / 磁链）
+  # - RULE-SET,R-javwide,R18                                       # javwide — 日本 AV 相关
+  # - RULE-SET,R-justav,R18                                        # justav — 日本 AV 视频网站
+  # - RULE-SET,R-kubakuba,R18                                      # kubakuba — 成人视频
+  # - RULE-SET,R-lethalhardcore,R18                                # lethalhardcore.com — 美国成人制片公司
+  # - RULE-SET,R-missav,R18                                        # missav.com — 日本 AV 在线播放
+  # - RULE-SET,R-mydirtyhobby,R18                                  # mydirtyhobby.com — 德国业余成人内容平台
+  # - RULE-SET,R-netflav,R18                                       # netflav.com — 日本 AV 在线流媒体
+  # - RULE-SET,R-pingsx,R18                                        # pingsx — 成人视频
+  # - RULE-SET,R-playboy,R18                                       # playboy.com — 成人杂志 / 内容平台
+  # - RULE-SET,R-pornhub,R18                                       # pornhub.com — 全球最大成人视频平台
+  # - RULE-SET,R-pornpros,R18                                      # pornpros.com — 美国成人制片公司
+  # - RULE-SET,R-realitykings,R18                                  # realitykings.com — 美国成人制片公司
+  # - RULE-SET,R-redtube,R18                                       # redtube.com — 成人视频平台
+  # - RULE-SET,R-sehuatang,R18                                     # 色花堂 — 华人成人论坛 / 图片
+  # - RULE-SET,R-smtiaojiaoshi,R18                                 # 丝袜调教师 — 成人视频 / 内容
+  # - RULE-SET,R-spankbang,R18                                     # spankbang.com — 成人视频平台
+  # - RULE-SET,R-swag,R18                                          # swag.live — 台湾成人直播 / 视频平台
+  # - RULE-SET,R-theporndude,R18                                   # theporndude.com — 成人网站导航 / 评测
+  # - RULE-SET,R-tube8,R18                                         # tube8.com — 成人视频平台（MindGeek 旗下）
+  # - RULE-SET,R-xhamster-ads,REJECT-DROP                               # xhamster 广告域名 → 拦截
+  # - RULE-SET,R-xhamster,R18                                      # xhamster.com — 成人视频平台
+  # - RULE-SET,R-xingkongwuxianmedia,R18                           # 星空无限传媒 — 国产成人视频制作公司
+  # - RULE-SET,R-xnxx,R18                                          # xnxx.com — 成人视频平台
+  # - RULE-SET,R-xvideos,R18                                       # xvideos.com — 成人视频平台
+  # - RULE-SET,R-youjizz,R18                                       # youjizz.com — 成人视频平台
+  # - RULE-SET,R-youporn,R18                                       # youporn.com — 成人视频平台（MindGeek 旗下）
+
+  # ── 漫画、图片与阅读社区 ──
+  # - RULE-SET,R-18comic,R18                                       # 18comic.vip — 禁漫天堂（成人漫画）
+  # - RULE-SET,R-boylove,R18                                       # boylove — BL 成人漫画 / 小说
+  # - RULE-SET,R-ehentai,R18                                       # e-hentai.org — 成人同人漫画聚合
+  # - RULE-SET,R-hentaichen,R18                                    # hentaichen — 中文成人漫画
+  # - RULE-SET,R-hentaivn,R18                                      # hentaivn — 越南语成人漫画
+  # - RULE-SET,R-metart,R18                                        # metart.com — 艺术写真 / 成人图片平台
+  # - RULE-SET,R-nudevista,R18                                     # nudevista.com — 成人图片 / 视频搜索引擎
+  # - RULE-SET,R-truyen-hentai,R18                                 # truyen-hentai — 越南语成人漫画
+  # - RULE-SET,R-xingrz,R18                                        # xingrz — 成人图片 / 漫画
+
+  # ── 游戏平台与制作公司 ──
+  # - RULE-SET,R-awempire,R18                                      # awempire.com — 成人娱乐集团（旗下多品牌）
+  # - RULE-SET,R-dmm-porn,R18                                      # DMM 成人内容 — 日本成人数字内容平台
+  # - RULE-SET,R-illgames,R18                                      # illgames — 日本成人游戏制作商（前 Illusion）
+  # - RULE-SET,R-illusion-nonoff,R18                               # Illusion 非官方资源站
+  # - RULE-SET,R-illusion,R18                                      # Illusion — 日本知名成人游戏制作商
+  # - RULE-SET,R-mindgeek-porn,R18                                 # MindGeek 成人内容（旗下含 PH / RedTube / YouPorn）
+  # - RULE-SET,R-mindgeek,R18                                      # mindgeek.com — 成人娱乐集团（Aylo 前身）
+  # - RULE-SET,R-nutaku,R18                                        # nutaku.net — 成人游戏平台
+  # - RULE-SET,R-pinkcore,R18                                      # pinkcore — 成人内容
+
+  # ══════════════════════════════════════════
+  # 6.Final
+  # ══════════════════════════════════════════
+  - RULE-SET,R-cdn-cn,DIRECT                                       # 国内 CDN
+  - RULE-SET,R-bank-cn,DIRECT                                      # 国内银行
+  - RULE-SET,R-securities-cn,DIRECT                                # 国内证券
+  - RULE-SET,R-finance-cn,DIRECT                                   # 国内金融
+  - RULE-SET,R-ntp-cn,DIRECT                                       # 国内 NTP 时间服务
+  - RULE-SET,R-netdisk-cn,DIRECT                                   # 国内网盘
+  - RULE-SET,R-games-cn,DIRECT                                     # 国内游戏
+  - RULE-SET,R-getui,DIRECT                                        # 国内个推推送服务
+  - RULE-SET,R-globalsign@cn,DIRECT                                # Apple 中国专属域名（云上贵州）
+  - RULE-SET,R-digicert@cn,DIRECT                                  # 字节全量
+ 
+  # ── GEO Final ──
+  - RULE-SET,geolocation-!cn,Final                                 # 非中国域名兜底
+  - RULE-SET,geosite-cn,DIRECT                                     # 中国域名兜底
+  - RULE-SET,geoip-cn,DIRECT,no-resolve                            # 中国 IP 兜底
+
+  # ── Final ──
+  - MATCH,Final
