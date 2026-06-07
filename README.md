@@ -8,8 +8,6 @@
 - `mihomo/mihomo.yaml`: 当前使用的 Mihomo 主配置。
 - `loon/`: Loon 配置文件。
 - `loon/loon.lcf`: 当前使用的 Loon 主配置。
-- `surge/`: Surge 配置文件。
-- `ruleset/`: 本地或生成后的规则集文件。
 
 ## 使用提醒
 
