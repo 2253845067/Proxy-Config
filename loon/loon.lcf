@@ -1,0 +1,166 @@
+# Loon 配置模板 - 分组和规则尽量对齐 Mihomo 主配置。
+
+[General]
+ip-mode = v4-only
+ipv6-vif = off
+dns-server = system
+sni-sniffing = true
+disable-stun = true
+dns-reject-mode = LoopbackIP
+domain-reject-mode = DNS
+udp-fallback-mode = REJECT
+wifi-access-http-port = 7222
+wifi-access-socks5-port = 7221
+allow-wifi-access = false
+interface-mode = auto
+test-timeout = 5
+disconnect-on-policy-change = false
+internet-test-url = http://connectivitycheck.platform.hicloud.com/generate_204
+proxy-test-url = https://www.gstatic.com/generate_204
+resource-parser = https://gh-proxy.com/https://raw.githubusercontent.com/sub-store-org/Sub-Store/release/sub-store-parser.loon.min.js
+geoip-url = https://geodata.kelee.one/Country-Masaiki.mmdb
+ipasn-url = https://geodata.kelee.one/GeoLite2-ASN-P3TERX.mmdb
+skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local,e.crashlynatics.com
+bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/4,255.255.255.255/32
+
+[Proxy]
+
+[Remote Proxy]
+
+[Remote Filter]
+AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$"
+HKNodes = NameRegex, FilterKey = "(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b).*"
+TWNodes = NameRegex, FilterKey = "(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b).*"
+JPNodes = NameRegex, FilterKey = "(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b).*"
+KRNodes = NameRegex, FilterKey = "(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b).*"
+SGNodes = NameRegex, FilterKey = "(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b).*"
+USNodes = NameRegex, FilterKey = "(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b).*"
+
+[Proxy Group]
+# ── Proxy ──
+Proxy = select,Auto,AllNodes,HK,TW,JP,KR,SG,US,OTHERS,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
+Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
+
+# ── Regions ──
+HK = select,HKNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
+TW = select,TWNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
+JP = select,JPNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
+KR = select,KRNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png
+SG = select,SGNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
+US = select,USNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
+OTHERS = select,AllNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+
+# ── Proxy App ──
+OpenAI = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png
+Anthropic = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png
+AI = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png
+Crypto = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cryptocurrency.png
+YouTube = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png
+Google = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png
+Cloudflare = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png
+Amazon = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Amazon.png
+GitHub = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png
+Microsoft = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png
+Adobe = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+Apple = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png
+Android = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png
+
+X = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/X.png
+Meta = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Facebook.png
+Telegram = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png
+Discord = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Discord.png
+Social = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+
+TikTok = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/TikTok.png
+Netflix = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png
+Spotify = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png
+Media = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Media.png
+Bilibili = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili.png
+
+Steam = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Steam.png
+Epic = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Epic_Games.png
+TapTap = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png
+Speedtest = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png
+
+# ── CN / Final ──
+CN = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+Final = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
+
+[Rule]
+GEOIP,CN,CN
+FINAL,Final
+
+[Remote Rule]
+# ── REJECT ──
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list, policy=REJECT, tag=BanAD, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list, policy=REJECT, tag=BanProgramAD, enabled=true
+
+# ── DIRECT / CN ──
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list, policy=DIRECT, tag=LocalAreaNetwork, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list, policy=DIRECT, tag=UnBan, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list, policy=CN, tag=GoogleCN, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list, policy=CN, tag=SteamCN, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list, policy=CN, tag=NetEaseMusic, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Wechat.list, policy=CN, tag=Wechat, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list, policy=CN, tag=Tencent, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list, policy=CN, tag=HuaWei, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list, policy=CN, tag=ChinaMedia, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list, policy=CN, tag=ChinaDomain, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list, policy=CN, tag=ChinaCompanyIp, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list, policy=CN, tag=Download, enabled=true
+
+# ── Proxy ──
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list, policy=OpenAI, tag=OpenAI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list, policy=AI, tag=AI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list, policy=Telegram, tag=Telegram, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list, policy=GitHub, tag=GitHub, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list, policy=Discord, tag=Discord, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list, policy=TikTok, tag=TikTok, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list, policy=X, tag=Twitter, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list, policy=Meta, tag=Facebook, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list, policy=YouTube, tag=YouTube, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=Final, tag=ProxyGFWlist, enabled=true
+
+# ── Google / Microsoft / Apple ──
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list, policy=Google, tag=GoogleFCM, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list, policy=Microsoft, tag=Bing, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list, policy=Microsoft, tag=OneDrive, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list, policy=Microsoft, tag=Microsoft, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list, policy=Apple, tag=Apple, enabled=true
+
+# ── 游戏 / 媒体 ──
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list, policy=Epic, tag=Epic, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list, policy=Steam, tag=Origin, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list, policy=Steam, tag=Sony, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list, policy=Steam, tag=Steam, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list, policy=Steam, tag=Nintendo, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list, policy=TapTap, tag=TapTap, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list, policy=Netflix, tag=Netflix, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list, policy=Spotify, tag=Spotify, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list, policy=Media, tag=Bahamut, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list, policy=Bilibili, tag=BilibiliHMT, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list, policy=Bilibili, tag=Bilibili, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list, policy=Media, tag=ProxyMedia, enabled=true
+
+[Host]
+
+[Rewrite]
+
+[Script]
+
+[Plugin]
+https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=true, enabled=true
+https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=true, enabled=true
+https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=Proxy, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Node_detection_tool.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/TestFlightRegionUnlock.lpx, policy=DIRECT, enabled=false
+https://kelee.one/Tool/Loon/Lpx/BoxJs.lpx, policy=Proxy, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=Proxy, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=Proxy, enabled=true
+
+[Mitm]
+hostname=
+ca-p12=
+ca-passphrase=
+skip-server-cert-verify=false
