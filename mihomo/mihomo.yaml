@@ -1,12 +1,19 @@
+# Proxy-Config / Mihomo 模板
 #
-# Sub-Store 使用说明
+# 用途：
+#   - 作为 Sub-Store 前端 [文件] tab 中的 Mihomo 配置文件远程模板使用。
+#   - 在 Sub-Store 里配置订阅与脚本操作后，将生成链接导入 Mihomo Party 等客户端。
+#   - 不在这里手写 proxy-providers 或 proxies；Sub-Store 会在输出结果中注入节点。
 #
-# 这份文件作为 Sub-Store 的 Mihomo 配置模板使用时，不要在这里写 proxy-providers
-# 或手动 proxies。Sub-Store 会在输出结果中自动生成根级 proxies: 节点列表。
+# 策略组：
+#   - 只保留 Proxy / Auto / HK / TW / JP / KR / SG / US / OTHERS / CN / Final。
+#   - Proxy 和地区组通过 include-all + filter 自动收纳订阅节点。
+#   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
-# 使用方式：
-#   - 所有由 Sub-Store 生成的节点会被 include-all: true 的策略组自动引用。
-#   - Proxy / HK / TW / JP / KR / SG / US / OTHERS 会按下面的正则过滤节点。
+# 规则：
+#   - 广告规则走 REJECT-DROP。
+#   - 国内、局域网、常见中国服务走 DIRECT/CN。
+#   - 海外服务走 Proxy；未命中流量走 Final。
 
 
 # 1. 全局参数 Global Settings
@@ -154,42 +161,9 @@ proxy-groups:
   - {name: US,          type: select, include-all: true, filter: '(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png"}  # 美国节点
   - {name: OTHERS,      type: select, include-all: true, filter: *FilterAll, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}  # 其他节点
 
-  # ── Proxy App ──
-  - {name: OpenAI,      type: select, proxies: &ProxyFirst [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/ChatGPT.png"}          # OpenAI / ChatGPT
-  - {name: Anthropic,   type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png"}               # Anthropic / Claude
-  - {name: AI,          type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/AI.png"}               # AI 杂项 (Perplexity / Groq / Cerebras / HuggingFace / Cursor / ElevenLabs / ComfyUI / 兜底)
-  - {name: Crypto,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cryptocurrency.png"}   # 加密货币
-  - {name: YouTube,     type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png"}          # YouTube
-  - {name: Google,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png"}           # Google 全家桶
-  - {name: Cloudflare,  type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Cloudflare.png"}       # Cloudflare
-  - {name: Amazon,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Amazon.png"}           # Amazon
-  - {name: GitHub,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/GitHub.png"}           # GitHub
-  - {name: Microsoft,   type: select, proxies: &DirectFirst [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Microsoft.png"}        # Microsoft 全家桶
-  - {name: Adobe,       type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}            # Adobe 全家桶
-  - {name: Apple,       type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Apple.png"}            # Apple 全家桶
-  - {name: Android,     type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Google.png"}           # Android / Google Play
-
-  - {name: X,           type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/X.png"}                # X / Twitter / 马斯克系
-  - {name: Meta,        type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Facebook.png"}         # Meta (Facebook / Instagram / WhatsApp)
-  - {name: Telegram,    type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Telegram.png"}         # Telegram
-  - {name: Discord,     type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Discord.png"}          # Discord
-  - {name: Social,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}           # 社交杂项 (Reddit / Tumblr / LINE)
-
-  - {name: TikTok,      type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/TikTok.png"}           # TikTok / 字节跳动海外
-  - {name: Netflix,     type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Netflix.png"}          # Netflix
-  - {name: Spotify,     type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png"}          # Spotify
-  - {name: Media,       type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Media.png"}            # 流媒体杂项 (Hulu / Prime Video / DAZN / HBO / Disney+ / Vimeo / Twitch / Rumble / Plex)
-  - {name: Bilibili,    type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/bilibili.png"}         # Bilibili
-
-  - {name: Steam,       type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Steam.png"}            # Steam
-  - {name: Epic,        type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Epic_Games.png"}       # Epic Games
-  - {name: TapTap,      type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Game.png"}              # TapTap
-
-  - {name: Speedtest,   type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Speedtest.png"}        # 测速
-
   # ── CN / Final ──
-  - {name: CN,          type: select, proxies: *DirectFirst, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}             # 默认国内直连
-  - {name: Final,       type: select, proxies: *ProxyFirst,  icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}             # 未匹配流量
+  - {name: CN,          type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}  # 默认国内直连
+  - {name: Final,       type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}  # 未匹配流量
 
 # =======================================================
 # 6. 规则源 Rule Providers
@@ -201,6 +175,9 @@ rule-providers:
   # 1.REJECT
   # ══════════════════════════════════════════
   BanAD:             &list-class {type: http, behavior: classical, format: text, interval: 86400, proxy: Proxy, path: ./ruleset/BanAD.list, url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list"}                  # 广告拦截
+  BanEasyList:       {<<: *list-class,  path: ./ruleset/BanEasyList.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list"}       # 广告拦截
+  BanEasyListChina:  {<<: *list-class,  path: ./ruleset/BanEasyListChina.list,  url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list"}  # 广告拦截
+  BanEasyPrivacy:    {<<: *list-class,  path: ./ruleset/BanEasyPrivacy.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list"}    # 广告拦截
   BanProgramAD:      {<<: *list-class,  path: ./ruleset/BanProgramAD.list,      url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list"}           # 应用净化
 
   # ══════════════════════════════════════════
@@ -217,6 +194,8 @@ rule-providers:
   ChinaMedia:        {<<: *list-class,  path: ./ruleset/ChinaMedia.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list"}             # 国内媒体
   ChinaDomain:       {<<: *list-class,  path: ./ruleset/ChinaDomain.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"}            # 中国域名
   ChinaCompanyIp:    {<<: *list-class,  path: ./ruleset/ChinaCompanyIp.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"}         # 中国公司 IP
+  ChinaIp:           {<<: *list-class,  behavior: ipcidr, path: ./ruleset/ChinaIp.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list"}           # 中国 IP
+  ChinaIpV6:         {<<: *list-class,  behavior: ipcidr, path: ./ruleset/ChinaIpV6.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list"}         # 中国 IPv6 IP
   Download:          {<<: *list-class,  path: ./ruleset/Download.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"}               # 下载站点
 
   # ══════════════════════════════════════════
@@ -232,6 +211,7 @@ rule-providers:
   Facebook:          {<<: *list-class,  path: ./ruleset/Facebook.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list"}       # Facebook / Meta
   YouTube:           {<<: *list-class,  path: ./ruleset/YouTube.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"}        # YouTube
   ProxyGFWlist:      {<<: *list-class,  path: ./ruleset/ProxyGFWlist.list,     url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list"}          # GFW 代理兜底
+  ProxyLite:         {<<: *list-class,  path: ./ruleset/ProxyLite.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list"}             # 精简代理列表
 
   # ── Google / Microsoft / Apple ──
   GoogleFCM:         {<<: *list-class,  path: ./ruleset/GoogleFCM.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list"}      # Google FCM
@@ -253,6 +233,7 @@ rule-providers:
   BilibiliHMT:       {<<: *list-class,  path: ./ruleset/BilibiliHMT.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list"}    # B 站港澳台
   Bilibili:          {<<: *list-class,  path: ./ruleset/Bilibili.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list"}       # B 站主域名
   ProxyMedia:        {<<: *list-class,  path: ./ruleset/ProxyMedia.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list"}             # 海外媒体
+  Xbox:              {<<: *list-class,  path: ./ruleset/Xbox.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list"}          # Xbox / Microsoft Gaming
 
 # =======================================================
 # 7. 分流规则 Rules
@@ -263,6 +244,9 @@ rules:
   # 1.REJECT
   # ══════════════════════════════════════════
   - RULE-SET,BanAD,REJECT-DROP                                       # 广告拦截
+  - RULE-SET,BanEasyList,REJECT-DROP                                 # 广告拦截
+  - RULE-SET,BanEasyListChina,REJECT-DROP                            # 广告拦截
+  - RULE-SET,BanEasyPrivacy,REJECT-DROP                              # 广告拦截
   - RULE-SET,BanProgramAD,REJECT-DROP                                # 应用净化
 
   # ══════════════════════════════════════════
@@ -279,42 +263,46 @@ rules:
   - RULE-SET,ChinaMedia,CN                                           # 国内媒体
   - RULE-SET,ChinaDomain,CN                                          # 中国域名
   - RULE-SET,ChinaCompanyIp,CN,no-resolve                            # 中国公司 IP
+  - RULE-SET,ChinaIp,CN,no-resolve                                   # 中国 IP
+  - RULE-SET,ChinaIpV6,CN,no-resolve                                 # 中国 IPv6 IP
   - RULE-SET,Download,CN                                             # 下载站点
 
   # ══════════════════════════════════════════
   # 3.Proxy
   # ══════════════════════════════════════════
-  - RULE-SET,OpenAi,OpenAI                                           # OpenAI
-  - RULE-SET,AI-MIX,AI                                               # AI 综合
-  - RULE-SET,Telegram,Telegram                                       # Telegram
-  - RULE-SET,GitHub,GitHub                                           # GitHub
-  - RULE-SET,Discord,Discord                                         # Discord
-  - RULE-SET,TikTok,TikTok                                           # TikTok
-  - RULE-SET,Twitter,X                                               # X / Twitter
-  - RULE-SET,Facebook,Meta                                           # Facebook / Meta
-  - RULE-SET,YouTube,YouTube                                         # YouTube
+  - RULE-SET,OpenAi,Proxy                                            # OpenAI
+  - RULE-SET,AI-MIX,Proxy                                            # AI 综合
+  - RULE-SET,Telegram,Proxy                                          # Telegram
+  - RULE-SET,GitHub,Proxy                                            # GitHub
+  - RULE-SET,Discord,Proxy                                           # Discord
+  - RULE-SET,TikTok,Proxy                                            # TikTok
+  - RULE-SET,Twitter,Proxy                                           # X / Twitter
+  - RULE-SET,Facebook,Proxy                                          # Facebook / Meta
+  - RULE-SET,YouTube,Proxy                                           # YouTube
+  - RULE-SET,ProxyLite,Proxy                                         # 精简代理列表
   - RULE-SET,ProxyGFWlist,Final                                      # GFW 代理兜底
 
   # ── Google / Microsoft / Apple ──
-  - RULE-SET,GoogleFCM,Google                                        # Google FCM
-  - RULE-SET,Bing,Microsoft                                          # Bing
-  - RULE-SET,OneDrive,Microsoft                                      # OneDrive
-  - RULE-SET,Microsoft,Microsoft                                     # Microsoft 全家桶
-  - RULE-SET,Apple,Apple                                             # Apple 全家桶
+  - RULE-SET,GoogleFCM,Proxy                                         # Google FCM
+  - RULE-SET,Bing,CN                                                 # Bing
+  - RULE-SET,OneDrive,CN                                             # OneDrive
+  - RULE-SET,Microsoft,CN                                            # Microsoft 全家桶
+  - RULE-SET,Apple,CN                                                # Apple 全家桶
 
   # ── 游戏 / 媒体 ──
-  - RULE-SET,Epic,Epic                                               # Epic Games
-  - RULE-SET,Origin,Steam                                            # EA / Origin
-  - RULE-SET,Sony,Steam                                              # PlayStation
-  - RULE-SET,Steam,Steam                                             # Steam
-  - RULE-SET,Nintendo,Steam                                          # Nintendo
-  - RULE-SET,TapTap,TapTap                                           # TapTap
-  - RULE-SET,Netflix,Netflix                                         # Netflix
-  - RULE-SET,Spotify,Spotify                                         # Spotify
-  - RULE-SET,Bahamut,Media                                           # 巴哈姆特
-  - RULE-SET,BilibiliHMT,Bilibili                                    # B 站港澳台
-  - RULE-SET,Bilibili,Bilibili                                       # B 站主域名
-  - RULE-SET,ProxyMedia,Media                                        # 海外媒体
+  - RULE-SET,Epic,CN                                                 # Epic Games
+  - RULE-SET,Origin,CN                                               # EA / Origin
+  - RULE-SET,Sony,CN                                                 # PlayStation
+  - RULE-SET,Steam,CN                                                # Steam
+  - RULE-SET,Nintendo,CN                                             # Nintendo
+  - RULE-SET,TapTap,CN                                               # TapTap
+  - RULE-SET,Netflix,Proxy                                           # Netflix
+  - RULE-SET,Spotify,Proxy                                           # Spotify
+  - RULE-SET,Bahamut,Proxy                                           # 巴哈姆特
+  - RULE-SET,BilibiliHMT,CN                                          # B 站港澳台
+  - RULE-SET,Bilibili,CN                                             # B 站主域名
+  - RULE-SET,ProxyMedia,Proxy                                        # 海外媒体
+  - RULE-SET,Xbox,Proxy                                              # Xbox / Microsoft Gaming
 
   # ── Final ──
   - GEOIP,CN,CN                                                      # 中国 IP 兜底
