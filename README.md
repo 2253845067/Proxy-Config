@@ -37,7 +37,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 ## Egern 使用方法
 
-1. 点击一键导入 [配置](egern:/profiles/new?name=Proxy-Config&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
+1. 点击一键导入 [配置](https://egernapp.com/profiles/new?name=Proxy-Config&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
 2. 如果无法跳转导入，打开 Egern 底部 [工具] -> 右上角 [...] -> [下载配置]，URL 填写：
 
 ```text
