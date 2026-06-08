@@ -1,13 +1,15 @@
 # Proxy-Config
 
-个人代理客户端配置模板与规则集整理仓库。
+个人代理客户端配置模板仓库。
 
 ## 目录结构
 
-- `mihomo/`: Mihomo 配置模板与片段。
+- `mihomo/`: Mihomo 配置模板。
 - `mihomo/mihomo.yaml`: 当前使用的 Mihomo 主配置。
 - `loon/`: Loon 配置文件。
 - `loon/loon.lcf`: 当前使用的 Loon 主配置。
+- `egern/`: Egern 配置文件。
+- `egern/egern.yaml`: 当前使用的 Egern 主配置。
 
 ## Mihomo 使用方法
 
@@ -32,3 +34,17 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 8. 点击 Loon 底部导航栏的 [配置] -> 右上角的 [...]，打开 [始终开启] 的开关。
 9. 打开 Loon 的开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)。
 10. 待更新完毕之后，回到仪表界面重新打开一次 Loon 的开关即可。
+
+## Egern 使用方法
+
+1. 点击一键导入 [配置](egern:/profiles/new?name=Proxy-Config&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
+2. 如果无法跳转导入，打开 Egern 底部 [工具] -> 右上角 [...] -> [下载配置]，URL 填写：
+
+```text
+https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/egern/egern.yaml
+```
+
+3. 导入完成后，切换并使用 `Proxy-Config` 配置。
+4. 打开 [工具] -> [策略组] -> `AllNodes`，类型保持 [外部的]，点击 [添加新的 URL]，填入你的机场订阅并保存。
+5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` / 地区策略组里能看到节点。
+6. 回到仪表界面打开 Egern 开关即可。
