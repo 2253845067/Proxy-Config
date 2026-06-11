@@ -299,6 +299,26 @@ rules:
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"
       policy: CN
       update_interval: 86400
+  - rule_set:
+      name: DouYin
+      match: "https://yfamilys.com/rule/DouYin.list"
+      policy: CN
+      update_interval: 86400
+  - rule_set:
+      name: Rabbit-ChinaCIDR
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/Rabbit-Spec/Surge/refs/heads/Master/Rules/ChinaCIDR.list"
+      policy: CN
+      update_interval: 86400
+  - rule_set:
+      name: Rabbit-China
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/Rabbit-Spec/Surge/refs/heads/Master/Rules/China.list"
+      policy: CN
+      update_interval: 86400
+  - rule_set:
+      name: iBL3ND-LAN
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/IBL3ND/rule/refs/heads/main/LAN.list"
+      policy: DIRECT
+      update_interval: 86400
 
   # ── Proxy ──
   - rule_set:
@@ -309,6 +329,56 @@ rules:
   - rule_set:
       name: AI-MIX
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: iBL3ND-Gemini
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/IBL3ND/rule/refs/heads/main/Gemini.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Kelee-AI
+      match: "https://kelee.one/Tool/Loon/Lsr/AI.lsr"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Whatshub-Gemini
+      match: "https://whatshub.top/rule/Gemini.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Naiixi-Crypto
+      match: "https://www.naiixi.com/Extra_Crypto.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Whatshub-OpenAI
+      match: "https://whatshub.top/rule/OpenAI.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Lige47-OpenAI
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/lige47/QuanX-icon-rule/main/rule/openai.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: ConnersHua-AI
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ConnersHua/RuleGo/master/Surge/Ruleset/Extra/AI.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Blackmatrix7-OpenAI
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/OpenAI/OpenAI.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Blackmatrix7-Crypto
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Crypto/Crypto.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Whatshub-Binance
+      match: "https://whatshub.top/rule/Binance.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
@@ -332,8 +402,23 @@ rules:
       policy: Proxy
       update_interval: 86400
   - rule_set:
+      name: Yfamilys-TikTok
+      match: "https://yfamilys.com/rule/TikTok.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
       name: Twitter
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-Twitter
+      match: "https://yfamilys.com/rule/Twitter.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-Telegram
+      match: "https://yfamilys.com/rule/Telegram.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
@@ -344,6 +429,16 @@ rules:
   - rule_set:
       name: YouTube
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-YouTube
+      match: "https://yfamilys.com/rule/YouTube.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-Instagram
+      match: "https://yfamilys.com/rule/Instagram.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
@@ -443,6 +538,21 @@ rules:
   - rule_set:
       name: ProxyMedia
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-ProxyMedia
+      match: "https://yfamilys.com/rule/ProxyMedia.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: Yfamilys-Cloudflare
+      match: "https://yfamilys.com/rule/Cloudflare.list"
+      policy: Proxy
+      update_interval: 86400
+  - rule_set:
+      name: GMOogway-Proxy
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/GMOogway/shadowrocket-rules/master/sr_proxy_list.module"
       policy: Proxy
       update_interval: 86400
   - rule_set:
