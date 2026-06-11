@@ -80,14 +80,14 @@ dns:
 policy_groups:
   # ── Subscription ──
   - external:
-      name: AllNodes
-      type: select
-      urls: []
-      filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
-      update_interval: 86400
-      block_quic: true
-      hidden: true
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
+    name: 机场订阅
+    type: select
+    urls:
+    - 这里添加进你的订阅地址
+    block_quic: true
+    hidden: true
+    filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
+    update_interval: 86400
 
   # ── Proxy ──
   - select:
@@ -96,6 +96,15 @@ policy_groups:
         - Auto
         - AllNodes
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
+
+  - select:
+    name: AllNodes
+    policies:
+    - 机场订阅
+    flatten: true
+    block_quic: true
+    hidden: false
+    icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png
 
   - auto_test:
       name: Auto
