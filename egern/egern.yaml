@@ -22,7 +22,7 @@ vif_only: true
 block_quic: true
 hide_vpn_icon: false
 hijack_dns:
-  - *
+  - "*"
 geoip_db_url: https://github.com/xream/geoip/releases/latest/download/ipinfo.country.mmdb
 asn_db_url: https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb
 proxy_latency_test_url: https://www.gstatic.com/generate_204
@@ -34,22 +34,22 @@ include_apns: false
 include_cellular_services: false
 include_local_networks: false
 bypass_tunnel_proxy:
-  - *.local
-  - *.lan
-  - localhost
-  - 10.0.0.0/8
-  - 100.64.0.0/10
-  - 127.0.0.0/8
-  - 169.254.0.0/16
-  - 172.16.0.0/12
-  - 192.168.0.0/16
+  - "*.local"
+  - "*.lan"
+  - "localhost"
+  - "10.0.0.0/8"
+  - "100.64.0.0/10"
+  - "127.0.0.0/8"
+  - "169.254.0.0/16"
+  - "172.16.0.0/12"
+  - "192.168.0.0/16"
 real_ip_domains:
-  - *.lan
-  - *.local
-  - time.*.apple.com
-  - ntp.*.com
-  - ntp.*.com.cn
-  - *.push.apple.com
+  - "*.lan"
+  - "*.local"
+  - "time.*.apple.com"
+  - "ntp.*.com"
+  - "ntp.*.com.cn"
+  - "*.push.apple.com"
 
 dns:
   bootstrap:
@@ -63,31 +63,31 @@ dns:
       - https://8.8.8.8/dns-query
   forward:
     - proxy_rule_set:
-        match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"
         value: domestic
         update_interval: 86400
     - proxy_rule_set:
-        match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"
         value: domestic
         update_interval: 86400
     - wildcard:
-        match: *.cn
+        match: "*.cn"
         value: domestic
     - wildcard:
-        match: *
+        match: "*"
         value: overseas
 
 policy_groups:
   # ── Subscription ──
   - external:
-    name: 机场订阅
-    type: select
-    urls:
-    - 这里添加进你的订阅地址
-    block_quic: true
-    hidden: true
-    filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
-    update_interval: 86400
+      name: AllNodes
+      type: select
+      urls: []
+      filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
+      update_interval: 86400
+      block_quic: true
+      hidden: true
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
 
   # ── Proxy ──
   - select:
@@ -95,16 +95,7 @@ policy_groups:
       policies:
         - Auto
         - AllNodes
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
-
-  - select:
-    name: AllNodes
-    policies:
-    - 机场订阅
-    flatten: true
-    block_quic: true
-    hidden: false
-    icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
 
   - auto_test:
       name: Auto
@@ -115,7 +106,7 @@ policy_groups:
       interval: 300
       tolerance: 50
       timeout: 5
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"
 
   # ── Regions ──
   - select:
@@ -124,49 +115,49 @@ policy_groups:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png"
   - select:
       name: TW
       policies:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png"
   - select:
       name: JP
       policies:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png"
   - select:
       name: KR
       policies:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png"
   - select:
       name: SG
       policies:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png"
   - select:
       name: US
       policies:
         - AllNodes
       flatten: true
       filter: '(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b).*'
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png"
   - select:
       name: OTHERS
       policies:
         - AllNodes
       flatten: true
       filter: *FilterAll
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"
 
   # ── CN / Final ──
   - select:
@@ -182,7 +173,7 @@ policy_groups:
         - SG
         - US
         - OTHERS
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"
   - select:
       name: Final
       policies:
@@ -196,256 +187,256 @@ policy_groups:
         - SG
         - US
         - OTHERS
-      icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"
 
 rules:
   # ── REJECT ──
   - rule_set:
       name: BanAD
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list"
       policy: REJECT
       update_interval: 86400
   - rule_set:
       name: BanEasyList
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list"
       policy: REJECT
       update_interval: 86400
   - rule_set:
       name: BanEasyListChina
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list"
       policy: REJECT
       update_interval: 86400
   - rule_set:
       name: BanEasyPrivacy
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list"
       policy: REJECT
       update_interval: 86400
   - rule_set:
       name: BanProgramAD
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list"
       policy: REJECT
       update_interval: 86400
 
   # ── DIRECT / CN ──
   - rule_set:
       name: LocalAreaNetwork
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"
       policy: DIRECT
       update_interval: 86400
   - rule_set:
       name: UnBan
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list"
       policy: DIRECT
       update_interval: 86400
   - rule_set:
       name: GoogleCN
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: SteamCN
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: NetEaseMusic
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Wechat
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Wechat.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Wechat.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Tencent
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: HuaWei
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ChinaMedia
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ChinaDomain
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ChinaCompanyIp
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ChinaIp
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ChinaIpV6
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Download
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"
       policy: CN
       update_interval: 86400
 
   # ── Proxy ──
   - rule_set:
       name: OpenAi
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: AI-MIX
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Telegram
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: GitHub
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Discord
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: TikTok
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Twitter
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Facebook
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: YouTube
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: ProxyLite
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: ProxyGFWlist
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list"
       policy: Final
       update_interval: 86400
 
   # ── Google / Microsoft / Apple ──
   - rule_set:
       name: GoogleFCM
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Bing
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: OneDrive
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Microsoft
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Apple
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list"
       policy: CN
       update_interval: 86400
 
   # ── 游戏 / 媒体 ──
   - rule_set:
       name: Epic
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Origin
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Sony
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Steam
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Nintendo
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: TapTap
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Netflix
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Spotify
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Bahamut
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: BilibiliHMT
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: Bilibili
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list"
       policy: CN
       update_interval: 86400
   - rule_set:
       name: ProxyMedia
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list"
       policy: Proxy
       update_interval: 86400
   - rule_set:
       name: Xbox
-      match: https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list
+      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list"
       policy: Proxy
       update_interval: 86400
 
