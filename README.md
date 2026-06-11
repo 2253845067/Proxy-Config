@@ -38,13 +38,13 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 ## Egern 使用方法
 
 1. 点击一键导入 [配置](https://egernapp.com/profiles/new?name=egern&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
-2. 如果无法跳转导入，打开 Egern 底部 [工具] -> 右上角 [...] -> [下载配置]，URL 填写：
+2. 如果无法跳转导入，打开 Egern 底部 [设置] -> 最上面 [配置] -> 右上角 [+号] -> [下载]，URL 填写：
 
 ```text
 https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/egern/egern.yaml
 ```
 
 3. 导入完成后，切换并使用 `egern` 配置。
-4. 打开 [工具] -> [策略组] -> `机场订阅`，填入你的机场订阅并保存。
+4. 打开 [工具] -> [代理] -> `机场订阅`，填入你的机场订阅并保存。
 5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` / 地区策略组里能看到节点。
 6. 回到仪表界面打开 Egern 开关即可。
