@@ -2,11 +2,12 @@
 #
 # 用途：
 #   - 通过 README 里的一键导入链接直接导入 Egern 使用。
-#   - 导入后把你的机场订阅 URL 添加到 AllNodes 外部策略组，其他策略组会自动复用这些节点。
+#   - 导入后把你的机场订阅 URL 添加到“机场订阅”外部策略组，其他策略组会自动复用这些节点。
 #
 # 策略组：
 #   - 与 Mihomo 模板保持同一套精简分组：Proxy / Auto / HK / TW / JP / KR / SG / US / OTHERS / CN / Final。
-#   - AllNodes 只作为 Egern 的订阅入口；不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
+#   - “机场订阅”作为 Egern 的订阅入口，AllNodes 负责汇总节点。
+#   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
 #   - 广告规则走 REJECT。
@@ -70,24 +71,24 @@ dns:
         match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"
         value: domestic
         update_interval: 86400
-    - wildcard:
+    - domain_wildcard:
         match: "*.cn"
         value: domestic
-    - wildcard:
+    - domain_wildcard:
         match: "*"
         value: overseas
 
 policy_groups:
   # ── Subscription ──
   - external:
-    name: 机场订阅
-    type: select
-    urls:
+      name: 机场订阅
+      type: select
+      urls:
     - 这里添加进你的订阅地址
-    block_quic: true
-    hidden: true
-    filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
-    update_interval: 86400
+      block_quic: true
+      hidden: true
+      filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
+      update_interval: 86400
 
   # ── Proxy ──
   - select:
@@ -98,20 +99,21 @@ policy_groups:
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
 
   - select:
-    name: AllNodes
-    policies:
-    - 机场订阅
-    flatten: true
-    block_quic: true
-    hidden: false
-    icon: https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png
+      name: AllNodes
+      policies:
+        - 机场订阅
+      flatten: true
+      block_quic: true
+      hidden: false
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
 
   - auto_test:
       name: Auto
       policies:
         - AllNodes
       flatten: true
-      filter: *FilterAll
+      block_quic: true
+      hidden: false
       interval: 300
       tolerance: 50
       timeout: 5
