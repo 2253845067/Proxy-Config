@@ -6,8 +6,8 @@
 #   - 不在这里手写 proxy-providers 或 proxies；Sub-Store 会在输出结果中注入节点。
 #
 # 策略组：
-#   - 只保留 Proxy / Auto / HK / TW / JP / KR / SG / US / OTHERS / CN / Final。
-#   - Proxy 和地区组通过 include-all + filter 自动收纳订阅节点。
+#   - 精简分组：Proxy / Auto / CN / Final。
+#   - Proxy 和 Auto 通过 include-all + filter 自动收纳订阅节点。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
@@ -152,18 +152,9 @@ proxy-groups:
   # ── Auto ──
   - {name: Auto,        type: url-test, include-all: true, filter: *FilterAll, url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"}  # 自动选择低延迟节点
 
-  # ── Regions ──
-  - {name: HK,          type: select, include-all: true, filter: '(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png"}  # 香港节点
-  - {name: TW,          type: select, include-all: true, filter: '(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png"}  # 台湾节点
-  - {name: JP,          type: select, include-all: true, filter: '(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png"}  # 日本节点
-  - {name: KR,          type: select, include-all: true, filter: '(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png"}  # 韩国节点
-  - {name: SG,          type: select, include-all: true, filter: '(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png"}  # 新加坡节点
-  - {name: US,          type: select, include-all: true, filter: '(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b)', icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png"}  # 美国节点
-  - {name: OTHERS,      type: select, include-all: true, filter: *FilterAll, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"}  # 其他节点
-
   # ── CN / Final ──
-  - {name: CN,          type: select, proxies: [DIRECT, Proxy, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}  # 默认国内直连
-  - {name: Final,       type: select, proxies: [Proxy, DIRECT, REJECT, HK, TW, JP, KR, SG, US, OTHERS], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}  # 未匹配流量
+  - {name: CN,          type: select, proxies: [DIRECT, Proxy, REJECT], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}  # 默认国内直连
+  - {name: Final,       type: select, proxies: [Proxy, DIRECT, REJECT], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}  # 未匹配流量
 
 # =======================================================
 # 6. 规则源 Rule Providers

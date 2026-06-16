@@ -46,5 +46,5 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 3. 导入完成后，切换并使用 `egern` 配置。
 4. 打开 [工具] -> [代理] -> `机场订阅`，填入你的机场订阅并保存。
-5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` / 地区策略组里能看到节点。
+5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
 6. 回到仪表界面打开 Egern 开关即可。

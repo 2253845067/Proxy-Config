@@ -5,8 +5,8 @@
 #   - 导入后把你的机场订阅 URL 添加到“机场订阅”外部策略组，其他策略组会自动复用这些节点。
 #
 # 策略组：
-#   - 与 Mihomo 模板保持同一套精简分组：Proxy / Auto / HK / TW / JP / KR / SG / US / OTHERS / CN / Final。
-#   - “机场订阅”作为 Egern 的订阅入口，AllNodes 负责汇总节点。
+#   - 精简分组：Proxy / Auto / CN / Final。
+#   - “机场订阅”作为 Egern 的订阅入口，AllNodes 只做隐藏节点汇总。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
@@ -96,6 +96,8 @@ policy_groups:
       policies:
         - Auto
         - AllNodes
+        - DIRECT
+        - REJECT
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
 
   - select:
@@ -104,7 +106,7 @@ policy_groups:
         - 机场订阅
       flatten: true
       block_quic: true
-      hidden: false
+      hidden: true
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
 
   - auto_test:
@@ -119,57 +121,6 @@ policy_groups:
       timeout: 5
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"
 
-  # ── Regions ──
-  - select:
-      name: HK
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png"
-  - select:
-      name: TW
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png"
-  - select:
-      name: JP
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png"
-  - select:
-      name: KR
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png"
-  - select:
-      name: SG
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png"
-  - select:
-      name: US
-      policies:
-        - AllNodes
-      flatten: true
-      filter: '(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b).*'
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png"
-  - select:
-      name: OTHERS
-      policies:
-        - AllNodes
-      flatten: true
-      filter: *FilterAll
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png"
-
   # ── CN / Final ──
   - select:
       name: CN
@@ -177,13 +128,6 @@ policy_groups:
         - DIRECT
         - Proxy
         - REJECT
-        - HK
-        - TW
-        - JP
-        - KR
-        - SG
-        - US
-        - OTHERS
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"
   - select:
       name: Final
@@ -191,13 +135,6 @@ policy_groups:
         - Proxy
         - DIRECT
         - REJECT
-        - HK
-        - TW
-        - JP
-        - KR
-        - SG
-        - US
-        - OTHERS
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"
 
 rules:
