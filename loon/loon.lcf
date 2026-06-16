@@ -5,7 +5,7 @@
 #   - resource-parser 仅用于 Loon 解析订阅资源，不代表此文件由 Sub-Store 生成。
 #
 # 策略组：
-#   - 与 Mihomo 模板保持同一套精简分组：Proxy / Auto / HK / TW / JP / KR / SG / US / OTHERS / CN / Final。
+#   - 精简分组：Proxy / Auto / CN / Final。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
@@ -14,26 +14,41 @@
 #   - 海外服务走 Proxy；未命中流量走 Final。
 
 [General]
-ip-mode = v4-only
-ipv6-vif = off
-dns-server = system
+# IPv6 支持
+ip-mode = dual
+ipv6-vif = auto
+# DNS 服务器
+dns-server = system,223.5.5.5,180.184.1.1
+# SNI辅助规则匹配
 sni-sniffing = true
+# UDP相关
 disable-stun = true
+udp-fallback-mode = REJECT
+# 域名拦截行为
 dns-reject-mode = LoopbackIP
 domain-reject-mode = DNS
-udp-fallback-mode = REJECT
-wifi-access-http-port = 7222
-wifi-access-socks5-port = 7221
+# Wi-Fi 访问
 allow-wifi-access = false
+wifi-access-http-port = 1234
+wifi-access-socks5-port = 1235
+mitm-on-wifi-access = false
+# 网络接口
 interface-mode = auto
+# 测速超时 (s)
 test-timeout = 5
+# 策略组切换时关闭连接
 disconnect-on-policy-change = false
+# 代理测速 URL
 internet-test-url = http://connectivitycheck.platform.hicloud.com/generate_204
 proxy-test-url = https://www.gstatic.com/generate_204
+# 解析器
 resource-parser = https://gh-proxy.com/https://raw.githubusercontent.com/sub-store-org/Sub-Store/release/sub-store-parser.loon.min.js
+# 数据库链接
 geoip-url = https://geodata.kelee.one/Country-Masaiki.mmdb
 ipasn-url = https://geodata.kelee.one/GeoLite2-ASN-P3TERX.mmdb
+# 跳过某个域名或者 IP 段，这些目标主机将不会由 Loon Proxy 处理。
 skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local,e.crashlynatics.com
+# 绕过路由
 bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/4,255.255.255.255/32
 
 [Proxy]
@@ -42,30 +57,15 @@ bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,1
 
 [Remote Filter]
 AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$"
-HKNodes = NameRegex, FilterKey = "(?i).*(?:🇭🇰|香港|Hong\s?Kong|\b(?:HK|HKG)\d*\b).*"
-TWNodes = NameRegex, FilterKey = "(?i).*(?:🇹🇼|台湾|Tai(?:wan)?|\b(?:TW|TWN)\d*\b).*"
-JPNodes = NameRegex, FilterKey = "(?i).*(?:🇯🇵|日本|川日|东京|大阪|埼玉|Japan|\b(?:JP|JPN)\d*\b).*"
-KRNodes = NameRegex, FilterKey = "(?i).*(?:🇰🇷|韩国|韓|首尔|Korea|\b(?:KR|KOR)\d*\b).*"
-SGNodes = NameRegex, FilterKey = "(?i).*(?:🇸🇬|新加坡|狮|Singapore|\b(?:SG|SGP)\d*\b).*"
-USNodes = NameRegex, FilterKey = "(?i).*(?:🇺🇸|美国|波特兰|达拉斯|俄勒冈|凤凰城|费利蒙|硅谷|洛杉矶|圣何塞|圣克拉拉|西雅图|芝加哥|拉斯维加斯|United States|\b(?:US|USA)\d*\b).*"
 
 [Proxy Group]
 # ── Proxy ──
-Proxy = select,Auto,AllNodes,HK,TW,JP,KR,SG,US,OTHERS,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
+Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
 Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
-# ── Regions ──
-HK = select,HKNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png
-TW = select,TWNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Taiwan.png
-JP = select,JPNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png
-KR = select,KRNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png
-SG = select,SGNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png
-US = select,USNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png
-OTHERS = select,AllNodes,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
-
 # ── CN / Final ──
-CN = select,DIRECT,Proxy,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
-Final = select,Proxy,DIRECT,REJECT,HK,TW,JP,KR,SG,US,OTHERS,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
+CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+Final = select,Proxy,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
 
 [Rule]
 GEOIP,CN,CN
