@@ -271,7 +271,7 @@ rules:
   - RULE-SET,Facebook,Proxy                                          # Facebook / Meta
   - RULE-SET,YouTube,Proxy                                           # YouTube
   - RULE-SET,ProxyLite,Proxy                                         # 精简代理列表
-  - RULE-SET,ProxyGFWlist,Final                                      # GFW 代理兜底
+  - RULE-SET,ProxyGFWlist,Proxy                                      # GFW 代理兜底
 
   # ── Google / Microsoft / Apple ──
   - RULE-SET,GoogleFCM,Proxy                                         # Google FCM

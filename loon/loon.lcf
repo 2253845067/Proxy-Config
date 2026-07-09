@@ -105,7 +105,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list, policy=Proxy, tag=Twitter, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list, policy=Proxy, tag=Facebook, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list, policy=Proxy, tag=YouTube, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=Final, tag=ProxyGFWlist, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=Proxy, tag=ProxyGFWlist, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list, policy=Proxy, tag=ProxyLite, enabled=true
 
 # ── Google / Microsoft / Apple ──

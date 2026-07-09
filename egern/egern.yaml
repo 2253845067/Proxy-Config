@@ -386,7 +386,7 @@ rules:
   - rule_set:
       name: ProxyGFWlist
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list"
-      policy: Final
+      policy: Proxy
       update_interval: 86400
 
   # ── Google / Microsoft / Apple ──
