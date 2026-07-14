@@ -27,8 +27,8 @@ ipv6: false                                  # 关闭 IPv6 解析
 log-level: warning                           # 日志级别 仅记录警告和错误，保持后台清爽并节省硬盘
 
 # ── 分流与防封锁机制 ──
-find-process-mode: "off"                     # 进程匹配模式: off 关闭进程规则/ strict 按需精准匹配/ always 强制查询耗性能
-global-client-fingerprint: chrome            # 全局 TLS 指纹伪装: 伪装为正常浏览器，降低节点被墙概率 可选 chrome/ios/random 等
+# find-process-mode: "off"                     # 进程匹配模式: off 关闭进程规则/ strict 按需精准匹配/ always 强制查询耗性能
+# global-client-fingerprint: chrome            # 全局 TLS 指纹伪装: 伪装为正常浏览器，降低节点被墙概率 可选 chrome/ios/random 等
 
 # ── 性能与连接优化 ──
 unified-delay: true                          # 统一延迟计算方式
