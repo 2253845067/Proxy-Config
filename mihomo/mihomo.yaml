@@ -6,14 +6,14 @@
 #   - 不在这里手写 proxy-providers 或 proxies；Sub-Store 会在输出结果中注入节点。
 #
 # 策略组：
-#   - 精简分组：Proxy / Auto / CN / Final。
+#   - 精简分组：Proxy / Auto / CN。
 #   - Proxy 和 Auto 通过 include-all + filter 自动收纳订阅节点。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
 #   - 广告规则走 REJECT-DROP。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；未命中流量走 Final。
+#   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
 
 
 # 1. 全局参数 Global Settings
@@ -152,9 +152,8 @@ proxy-groups:
   # ── Auto ──
   - {name: Auto,        type: url-test, include-all: true, filter: *FilterAll, url: "https://www.gstatic.com/generate_204", interval: 300, tolerance: 50, icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"}  # 自动选择低延迟节点
 
-  # ── CN / Final ──
+  # ── CN ──
   - {name: CN,          type: select, proxies: [DIRECT, Proxy, REJECT], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"}  # 默认国内直连
-  - {name: Final,       type: select, proxies: [Proxy, DIRECT, REJECT], icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"}  # 未匹配流量
 
 # =======================================================
 # 6. 规则源 Rule Providers
@@ -295,6 +294,6 @@ rules:
   - RULE-SET,ProxyMedia,Proxy                                        # 海外媒体
   - RULE-SET,Xbox,Proxy                                              # Xbox / Microsoft Gaming
 
-  # ── Final ──
+  # ── 兜底 ──
   - GEOIP,CN,CN                                                      # 中国 IP 兜底
-  - MATCH,Final                                                      # 未匹配流量
+  - MATCH,Proxy                                                      # 未匹配流量

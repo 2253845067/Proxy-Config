@@ -5,13 +5,13 @@
 #   - resource-parser 仅用于 Loon 解析订阅资源，不代表此文件由 Sub-Store 生成。
 #
 # 策略组：
-#   - 精简分组：Proxy / Auto / CN / Final。
+#   - 精简分组：Proxy / Auto / CN。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
 #   - 广告规则走 REJECT。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；未命中流量走 Final。
+#   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
 
 [General]
 # IPv6 支持
@@ -63,13 +63,12 @@ AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|
 Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
 Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
-# ── CN / Final ──
+# ── CN ──
 CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
-Final = select,Proxy,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png
 
 [Rule]
 GEOIP,CN,CN
-FINAL,Final
+FINAL,Proxy
 
 [Remote Rule]
 # ── REJECT ──

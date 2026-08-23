@@ -5,14 +5,14 @@
 #   - 导入后把你的机场订阅 URL 添加到“机场订阅”外部策略组，其他策略组会自动复用这些节点。
 #
 # 策略组：
-#   - 精简分组：Proxy / Auto / CN / Final。
+#   - 精简分组：Proxy / Auto / CN。
 #   - “机场订阅”作为 Egern 的订阅入口，AllNodes 只做隐藏节点汇总。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
 #   - 广告规则走 REJECT。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；GFW 兜底与未命中流量走 Final。
+#   - 海外服务走 Proxy；GFW 兜底与未命中流量走 Proxy。
 
 ---
 ipv6: false
@@ -121,7 +121,7 @@ policy_groups:
       timeout: 5
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"
 
-  # ── CN / Final ──
+  # ── CN ──
   - select:
       name: CN
       policies:
@@ -129,13 +129,6 @@ policy_groups:
         - Proxy
         - REJECT
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png"
-  - select:
-      name: Final
-      policies:
-        - Proxy
-        - DIRECT
-        - REJECT
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Final.png"
 
 rules:
   # ── REJECT ──
@@ -498,11 +491,11 @@ rules:
       policy: Proxy
       update_interval: 86400
 
-  # ── Final ──
+  # ── 兜底 ──
   - geoip:
       match: CN
       policy: CN
       no_resolve: true
   - default:
-      policy: Final
+      policy: Proxy
 
