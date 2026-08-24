@@ -5,13 +5,15 @@
 #   - resource-parser 仅用于 Loon 解析订阅资源，不代表此文件由 Sub-Store 生成。
 #
 # 策略组：
-#   - 精简分组：Proxy / Auto / CN。
+#   - 精简分组：Proxy / Auto / CN / 场景分流。
+#   - 场景分流：连上透明代理路由器 WiFi 时自动走 DIRECT（由路由器代理），
+#     其他网络（默认/蜂窝）走 Proxy/Auto，避免双重代理。
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
 #   - 广告规则走 REJECT。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
+#   - 海外服务走 场景分流；未命中流量兜底走 场景分流。
 
 [General]
 # IPv6 支持
@@ -64,11 +66,15 @@ Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https:
 Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
 # ── CN ──
-CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+CN = select,DIRECT,场景分流,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+
+# ── WiFi 分流（透明代理路由器环境自动直连）──
+# 有多个透明代理路由器 WiFi 时，继续追加 "SSID"=DIRECT；普通 WiFi 无需列出（自动走 default）
+场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
 
 [Rule]
 GEOIP,CN,CN
-FINAL,Proxy
+FINAL,场景分流
 
 [Remote Rule]
 # ── REJECT ──
@@ -95,20 +101,20 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list, policy=CN, tag=Download, enabled=true
 
 # ── Proxy ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list, policy=Proxy, tag=OpenAI, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list, policy=Proxy, tag=AI-MIX, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list, policy=Proxy, tag=Telegram, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list, policy=Proxy, tag=GitHub, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list, policy=Proxy, tag=Discord, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list, policy=Proxy, tag=TikTok, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list, policy=Proxy, tag=Twitter, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list, policy=Proxy, tag=Facebook, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list, policy=Proxy, tag=YouTube, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=Proxy, tag=ProxyGFWlist, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list, policy=Proxy, tag=ProxyLite, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list, policy=场景分流, tag=OpenAI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list, policy=场景分流, tag=AI-MIX, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list, policy=场景分流, tag=Telegram, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list, policy=场景分流, tag=GitHub, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list, policy=场景分流, tag=Discord, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list, policy=场景分流, tag=TikTok, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list, policy=场景分流, tag=Twitter, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list, policy=场景分流, tag=Facebook, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list, policy=场景分流, tag=YouTube, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=场景分流, tag=ProxyGFWlist, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list, policy=场景分流, tag=ProxyLite, enabled=true
 
 # ── Google / Microsoft / Apple ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list, policy=Proxy, tag=GoogleFCM, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list, policy=场景分流, tag=GoogleFCM, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list, policy=CN, tag=Bing, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list, policy=CN, tag=OneDrive, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list, policy=CN, tag=Microsoft, enabled=true
@@ -121,30 +127,39 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list, policy=CN, tag=Steam, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list, policy=CN, tag=Nintendo, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list, policy=CN, tag=TapTap, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list, policy=Proxy, tag=Netflix, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list, policy=Proxy, tag=Spotify, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list, policy=Proxy, tag=Bahamut, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list, policy=场景分流, tag=Netflix, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list, policy=场景分流, tag=Spotify, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list, policy=场景分流, tag=Bahamut, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list, policy=CN, tag=BilibiliHMT, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list, policy=CN, tag=Bilibili, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list, policy=Proxy, tag=ProxyMedia, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list, policy=Proxy, tag=Xbox, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list, policy=场景分流, tag=ProxyMedia, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list, policy=场景分流, tag=Xbox, enabled=true
 
 [Host]
+# 每个透明代理路由器 WiFi 一行，IP 填各自路由器管理 IP
+ssid: WiFi1=server: 10.0.0.1
+ssid: WiFi2=server: 10.0.0.2
 
 [Rewrite]
 
 [Script]
 
 [Plugin]
+# ── 新增 ──
+https://kelee.one/Tool/Loon/Lpx/TelegramRedirect.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/AppleWeatherEnhancer.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/12306_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/DragonRead_remove_ads.lpx, enabled=true
+# ── 原有 ──
 https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=true, enabled=true
 https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=true, enabled=true
 https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
-https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=Proxy, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Node_detection_tool.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/TestFlightRegionUnlock.lpx, policy=DIRECT, enabled=false
-https://kelee.one/Tool/Loon/Lpx/BoxJs.lpx, policy=Proxy, enabled=true
-https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=Proxy, enabled=true
-https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=Proxy, enabled=true
+https://kelee.one/Tool/Loon/Lpx/BoxJs.lpx, policy=场景分流, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=场景分流, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=场景分流, enabled=true
 
 [Mitm]
 hostname=

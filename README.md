@@ -35,6 +35,13 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 9. 打开 Loon 的开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)。
 10. 待更新完毕之后，回到仪表界面重新打开一次 Loon 的开关即可。
 
+> **WiFi 分流（可选）**：若你使用透明代理路由器，把配置中的 `WiFi1` / `WiFi2` 替换为路由器 WiFi 名称、`10.0.0.1` / `10.0.0.2` 替换为对应路由器管理 IP。连上这些 WiFi 时 Loon 自动走直连（由路由器代理翻墙），其他网络由 Loon 自动分流，避免双重代理。
+>
+> 有多个透明代理路由器 WiFi 时：
+> - `[Proxy Group]` 的 `场景分流` 组里继续追加 `"SSID"=DIRECT`（如 `"WiFi3"=DIRECT`）；
+> - `[Host]` 里每个 WiFi 单独一行 `ssid: SSID=server: 路由器IP`；
+> - 普通 WiFi（没有路由器翻墙）不用列出，自动走 default 的 Proxy/Auto。
+
 ## Egern 使用方法
 
 1. 点击一键导入 [配置](https://egernapp.com/profiles/new?name=egern&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
