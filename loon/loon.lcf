@@ -66,7 +66,7 @@ Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https:
 Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
 # ── CN ──
-CN = select,DIRECT,场景分流,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+CN = select,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
 
 # ── WiFi 分流（透明代理路由器环境自动直连）──
 # 有多个透明代理路由器 WiFi 时，继续追加 "SSID"=DIRECT；普通 WiFi 无需列出（自动走 default）
