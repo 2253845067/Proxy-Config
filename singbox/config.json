@@ -1,0 +1,373 @@
+{
+  "$schema": "https://raw.githubusercontent.com/reF1nd/sing-box/reF1nd-testing-next/docs/schema.json",
+  "log": {
+    "level": "warn",
+    "timestamp": true
+  },
+  "providers": [
+    {
+      "type": "remote",
+      "tag": "airport",
+      "url": "https://example.com/your-subscription",
+      "path": "providers/airport.txt",
+      "exclude": "(?i)(群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\\d{4}-\\d{2}-\\d{2}|\\d+G)",
+      "http_client": "provider-download",
+      "update_interval": "24h",
+      "health_check": {
+        "enabled": true,
+        "url": "https://www.gstatic.com/generate_204",
+        "interval": "10m",
+        "timeout": "5s"
+      }
+    }
+  ],
+  "http_clients": [
+    {
+      "tag": "provider-download",
+      "detour": "direct-dns"
+    },
+    {
+      "tag": "download",
+      "detour": "Proxy"
+    }
+  ],
+  "dns": {
+    "servers": [
+      {
+        "tag": "local",
+        "type": "local"
+      },
+      {
+        "tag": "cn-ali",
+        "type": "https",
+        "server": "223.5.5.5",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.alidns.com"
+        },
+        "detour": "direct-dns"
+      },
+      {
+        "tag": "cn-tencent",
+        "type": "https",
+        "server": "1.12.12.12",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "doh.pub"
+        },
+        "detour": "direct-dns"
+      },
+      {
+        "tag": "cn",
+        "type": "group",
+        "servers": ["cn-ali", "cn-tencent"]
+      },
+      {
+        "tag": "remote-google",
+        "type": "https",
+        "server": "8.8.8.8",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "dns.google"
+        },
+        "detour": "Proxy"
+      },
+      {
+        "tag": "remote-cloudflare",
+        "type": "https",
+        "server": "1.1.1.1",
+        "server_port": 443,
+        "path": "/dns-query",
+        "tls": {
+          "server_name": "cloudflare-dns.com"
+        },
+        "detour": "Proxy"
+      },
+      {
+        "tag": "remote",
+        "type": "group",
+        "servers": ["remote-google", "remote-cloudflare"]
+      }
+    ],
+    "rules": [
+      {
+        "domain_suffix": ["lan", "local"],
+        "action": "route",
+        "server": "local"
+      },
+      {
+        "rule_set": ["private", "cn-domains", "cn-services"],
+        "action": "route",
+        "server": "cn"
+      }
+    ],
+    "final": "remote",
+    "strategy": "ipv4_only",
+    "optimistic": true
+  },
+  "inbounds": [
+    {
+      "type": "mixed",
+      "tag": "mixed-in",
+      "listen": "0.0.0.0",
+      "listen_port": 7890,
+      "set_system_proxy": false
+    },
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "sing-box",
+      "address": ["172.19.0.1/30"],
+      "auto_route": true,
+      "strict_route": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "selector",
+      "tag": "Proxy",
+      "outbounds": ["Auto", "direct"],
+      "providers": ["airport"],
+      "default": "Auto"
+    },
+    {
+      "type": "urltest",
+      "tag": "Auto",
+      "outbounds": ["direct"],
+      "providers": ["airport"],
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "5m",
+      "tolerance": 50
+    },
+    {
+      "type": "selector",
+      "tag": "CN",
+      "outbounds": ["direct", "Proxy"],
+      "default": "direct"
+    },
+    {
+      "type": "direct",
+      "tag": "direct-dns",
+      "connect_timeout": "10s"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "auto_detect_interface": true,
+    "default_domain_resolver": "cn",
+    "rule_set": [
+      {
+        "tag": "ads",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-category-ads-all.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "private",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-private.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "cn-domains",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-cn.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "cn-services",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-netease.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "cn-ip",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geoip/raw/rule-set/geoip-cn.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "google-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-google%40cn.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "steam-cn",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-steam%40cn.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "cn-services-extra",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-tencent.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "huawei",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-huawei.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "openai",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-openai.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "telegram",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-telegram.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "github",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-github.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "discord",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-discord.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "tiktok",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-tiktok.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "twitter",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-twitter.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "facebook",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-facebook.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "youtube",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-youtube.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "netflix",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-netflix.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "spotify",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-spotify.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      }
+    ],
+    "rules": [
+      {
+        "action": "sniff"
+      },
+      {
+        "protocol": "dns",
+        "action": "hijack-dns"
+      },
+      {
+        "rule_set": ["ads"],
+        "action": "reject"
+      },
+      {
+        "domain_suffix": ["lan", "local"],
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["private"],
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["google-cn", "steam-cn", "cn-services", "cn-services-extra", "huawei", "cn-domains"],
+        "outbound": "CN"
+      },
+      {
+        "rule_set": ["openai", "telegram", "github", "discord", "tiktok", "twitter", "facebook", "youtube", "netflix", "spotify"],
+        "outbound": "Proxy"
+      },
+      {
+        "action": "resolve",
+        "match_only": true
+      },
+      {
+        "ip_is_private": true,
+        "outbound": "direct"
+      },
+      {
+        "rule_set": ["cn-ip"],
+        "outbound": "CN"
+      }
+    ],
+    "final": "Proxy"
+  },
+  "experimental": {
+    "urltest_unified_delay": true,
+    "cache_file": {
+      "enabled": true,
+      "path": "cache.db"
+    },
+    "clash_api": {
+      "external_controller": "127.0.0.1:9090",
+      "external_ui_download_url": "https://ghfast.top/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip"
+    }
+  }
+}
+

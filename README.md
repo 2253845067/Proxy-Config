@@ -10,6 +10,8 @@
 - `loon/loon.lcf`: 当前使用的 Loon 主配置。
 - `egern/`: Egern 配置文件。
 - `egern/egern.yaml`: 当前使用的 Egern 主配置。
+- `singbox/`: sing-box 配置模板。
+- `singbox/config.json`: sing-box 主配置（1.15+，需使用 reF1nd 核心）。
 
 ## Mihomo 使用方法
 
@@ -55,3 +57,28 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 4. 打开 [工具] -> [代理] -> `机场订阅`，填入你的机场订阅并保存。
 5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
 6. 回到仪表界面打开 Egern 开关即可。
+
+## sing-box 使用方法
+
+`singbox/config.json` 对应 Mihomo 的 `Proxy` / `Auto` / `CN` 三个策略组，并保留广告拦截、国内直连、海外代理、TUN 和 DNS 分流逻辑。
+
+本配置使用 sing-box_reF1nd 分支的 Provider 功能，请使用对应的 reF1nd 核心运行；官方 sing-box 核心不支持配置中的 `providers` 字段。
+
+机场订阅链接填写在 `singbox/config.json` 的 `providers[0].url`。订阅节点会自动加入 `Proxy` / `Auto` 策略组。
+
+订阅首次加载使用 `provider-download` 直连以避免与 `Proxy` 策略组形成循环依赖；规则集下载使用 `download` 并通过 `Proxy`。请确保订阅地址可直连访问，并在启动前将示例地址替换为真实订阅链接。
+
+配置使用 reF1nd 的并发 DNS 组、Provider HTTP 客户端和 `resolve.match_only`：先匹配域名规则，解析后再匹配 IP 规则，同时保留原始域名用于实际连接。
+
+TUN 入站已启用自动路由和严格路由（`auto_route` / `strict_route`），启动客户端时请授予 TUN/管理员权限；否则系统流量不会被接管。
+
+规则集使用 sing-box 原生 `.srs` 文件，并在首次启动时经 `ghfast.top` 从 SagerNet 仓库下载。导入前可用对应的 reF1nd 核心检查配置：
+
+```text
+sing-box check -c singbox/config.json
+```
+
+相关参考：
+
+- [sing-box_reF1nd 核心仓库](https://github.com/reF1nd/sing-box)
+- [resolve.match_only 特性说明与配置示例](https://gist.github.com/CHIZI-0618/35f59df7b17bf66ea988d775aaf76152)
