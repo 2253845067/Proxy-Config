@@ -129,18 +129,19 @@
     {
       "type": "selector",
       "tag": "Proxy",
-      "outbounds": ["Auto", "direct"],
+      "outbounds": ["Auto"],
       "providers": ["airport"],
       "default": "Auto"
     },
     {
       "type": "urltest",
       "tag": "Auto",
-      "outbounds": ["direct"],
       "providers": ["airport"],
+      "use_all_providers": true,
       "url": "https://www.gstatic.com/generate_204",
       "interval": "5m",
-      "tolerance": 50
+      "tolerance": 50,
+      "interrupt_exist_connections": true
     },
     {
       "type": "selector",
