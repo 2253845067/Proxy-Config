@@ -81,14 +81,13 @@ sniffer:
 tun:
   enable: true                               # 开启 TUN 虚拟网卡
   stack: mixed                               # 混合网络栈：TCP 走 system (高性能)，UDP 走 gVisor (高兼容)
-  dns-hijack: ["udp://any:53", "tcp://any:53"]   # 双重劫持标准 DNS 端口，彻底防泄漏
+  dns-hijack: ["any:53", "tcp://any:53"]     # 分别劫持 UDP/TCP DNS，彻底防止系统 DNS 绕过
   #device: nikki                             #使用nikki，混入全部不修改的情况，开启接口指定为nikki
 
-  #使用仅内核自行修改下面三项为true 路由控制 使用 GUI 客户端保持 false，纯内核命令行运行改为 true
-  auto-route: false                          # 不自动修改系统路由表，交由外层客户端管理，防冲突
-  auto-redirect: false                       # 不自动配置重定向流量规则
-  auto-detect-interface: false               # 不自动探测物理出口网卡
-  strict-route: false                        # 严格路由限制 开启后物理网卡被锁死，GUI 环境建议 false
+  auto-route: true                            # 自动接管系统路由，避免应用绕过 TUN 直连 DNS
+  auto-redirect: false                        # 桌面 GUI 由 TUN 路由接管，不启用 Linux 专用重定向
+  auto-detect-interface: true                 # 自动识别真实网络出口
+  strict-route: true                          # 严格路由，阻止 IPv4/IPv6 流量绕过 TUN
 
 # =======================================================
 # 4. DNS
@@ -110,14 +109,14 @@ dns:
 
   # ── DNS ──
   default-nameserver:                        # 基础启动 用于最底层解析下方 proxy-server-nameserver 本身及代理节点的域名
-    - "https://223.5.5.5/dns-query"
-    - "https://223.6.6.6/dns-query"
+    - "https://1.1.1.1/dns-query"
+    - "https://8.8.8.8/dns-query"
   proxy-server-nameserver:                   # 节点专线 专职负责解析 “节点” 和 “订阅链接” 的真实 IP
-    - https://223.5.5.5/dns-query
-    - https://1.12.12.12/dns-query
+    - "https://1.1.1.1/dns-query"
+    - "https://8.8.8.8/dns-query"
   direct-nameserver:                         # 直连兜底 专职负责解析走 DIRECT 分流规则的域名
-    - "https://223.5.5.5/dns-query"
-    - "https://1.12.12.12/dns-query"
+    - "https://1.1.1.1/dns-query#Proxy"
+    - "https://8.8.8.8/dns-query#Proxy"
   nameserver:                                # 国外兜底 处理所有未知的兜底域名，防止 DNS 污染 附带节点选择强制走代理出境
     - https://8.8.8.8/dns-query#Proxy       # 通过代理发送 DoH，避免明文 DNS 暴露给本地网络
     - https://1.1.1.1/dns-query#Proxy
@@ -125,10 +124,10 @@ dns:
   # ── DNS 分流 ──
   nameserver-policy:
     "rule-set:LocalAreaNetwork": [system]
-    "rule-set:UnBan": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]                  # 连通性检测
-    "rule-set:NetEaseMusic": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]           # 网易云音乐
-    "rule-set:ChinaMedia": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]             # 国内媒体
-    "rule-set:ChinaDomain": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]            # 中国域名
+    "rule-set:UnBan": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]             # 连通性检测
+    "rule-set:NetEaseMusic": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]      # 网易云音乐
+    "rule-set:ChinaMedia": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]        # 国内媒体
+    "rule-set:ChinaDomain": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]       # 中国域名
 
   # ── Fake-IP ──
   fake-ip-filter:
