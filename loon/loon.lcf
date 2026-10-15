@@ -19,8 +19,8 @@
 # IPv6 支持
 ip-mode = dual
 ipv6-vif = auto
-# DNS 服务器
-dns-server = system,223.5.5.5,180.184.1.1
+# DNS 服务器：仅保留加密 DNS，避免系统 DNS 或明文 DNS 泄露查询域名
+doh-server = https://dns.alidns.com/dns-query,https://doh.pub/dns-query,https://cloudflare-dns.com/dns-query
 # SNI辅助规则匹配
 sni-sniffing = true
 # UDP相关
@@ -73,7 +73,8 @@ CN = select,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubuserc
 场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
 
 [Rule]
-GEOIP,CN,CN
+# 仅对已有 IP 地址做 GEOIP 判断，避免为未知域名额外发起系统 DNS 查询
+GEOIP,CN,CN,no-resolve
 FINAL,场景分流
 
 [Remote Rule]

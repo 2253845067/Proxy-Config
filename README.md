@@ -23,6 +23,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 ```
 
 3. 保存后，将生成的链接导入 Mihomo Party 等客户端。
+4. 在客户端开启 TUN 模式并启用系统代理接管；模板已开启 DNS 劫持，只有 TUN 接管系统流量后才能阻止应用绕过内置 DNS。
 
 ## Loon 使用方法
 
@@ -36,6 +37,8 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 8. 点击 Loon 底部导航栏的 [配置] -> 右上角的 [...]，打开 [始终开启] 的开关。
 9. 打开 Loon 的开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)。
 10. 待更新完毕之后，回到仪表界面重新打开一次 Loon 的开关即可。
+
+> **DNS 防泄漏**：配置使用 DoH，不再声明系统 DNS 或明文 DNS。Loon 的官方文档说明，加密 DNS 查询失败时可能回落到普通 DNS；若要完全禁止回落，请在 Loon 的 DNS 服务器设置中关闭“加密 DNS 失败时使用普通 DNS”。
 
 > **WiFi 分流（可选）**：若你使用透明代理路由器，把配置中的 `WiFi1` / `WiFi2` 替换为路由器 WiFi 名称、`10.0.0.1` / `10.0.0.2` 替换为对应路由器管理 IP。连上这些 WiFi 时 Loon 自动走直连（由路由器代理翻墙），其他网络由 Loon 自动分流，避免双重代理。
 >

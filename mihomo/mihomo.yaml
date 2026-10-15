@@ -110,25 +110,25 @@ dns:
 
   # ── DNS ──
   default-nameserver:                        # 基础启动 用于最底层解析下方 proxy-server-nameserver 本身及代理节点的域名
-    - 223.5.5.5
-    - 223.6.6.6
+    - "https://223.5.5.5/dns-query"
+    - "https://223.6.6.6/dns-query"
   proxy-server-nameserver:                   # 节点专线 专职负责解析 “节点” 和 “订阅链接” 的真实 IP
     - https://223.5.5.5/dns-query
-    - https://doh.pub/dns-query
+    - https://1.12.12.12/dns-query
   direct-nameserver:                         # 直连兜底 专职负责解析走 DIRECT 分流规则的域名
-    - 223.5.5.5
-    - 119.29.29.29
+    - "https://223.5.5.5/dns-query"
+    - "https://1.12.12.12/dns-query"
   nameserver:                                # 国外兜底 处理所有未知的兜底域名，防止 DNS 污染 附带节点选择强制走代理出境
-    - 8.8.8.8#Proxy                          # 修改为明文dns地址，因大部分家宽不支持DoH解析，有需求的用户可以自行替换为 https://1.1.1.1/dns-query#Proxy  https://8.8.8.8/dns-query#Proxy
-    #- 1.1.1.1#Proxy
+    - https://8.8.8.8/dns-query#Proxy       # 通过代理发送 DoH，避免明文 DNS 暴露给本地网络
+    - https://1.1.1.1/dns-query#Proxy
 
   # ── DNS 分流 ──
   nameserver-policy:
     "rule-set:LocalAreaNetwork": [system]
-    "rule-set:UnBan": [system, 223.5.5.5, 119.29.29.29]                  # 连通性检测
-    "rule-set:NetEaseMusic": [system, 223.5.5.5, 119.29.29.29]           # 网易云音乐
-    "rule-set:ChinaMedia": [system, 223.5.5.5, 119.29.29.29]             # 国内媒体
-    "rule-set:ChinaDomain": [system, 223.5.5.5, 119.29.29.29]            # 中国域名
+    "rule-set:UnBan": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]                  # 连通性检测
+    "rule-set:NetEaseMusic": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]           # 网易云音乐
+    "rule-set:ChinaMedia": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]             # 国内媒体
+    "rule-set:ChinaDomain": ["https://223.5.5.5/dns-query", "https://1.12.12.12/dns-query"]            # 中国域名
 
   # ── Fake-IP ──
   fake-ip-filter:
