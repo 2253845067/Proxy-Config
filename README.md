@@ -19,10 +19,11 @@
 2. 进行配置：设置订阅、添加脚本操作，远程链接填写：
 
 ```text
-https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yaml
+https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yaml
 ```
 
 3. 保存后，将生成的链接导入 Mihomo Party 等客户端。
+   若预览提示“无法下载脚本”，先检查模板地址是否可访问；`gh-proxy.com` 中转地址可能返回 403，可改用上面的 GitHub 原始地址（Sub-Store 后端需能访问 GitHub）。
 4. 在客户端开启 TUN 模式并启用系统代理接管；模板已开启 DNS 劫持，只有 TUN 接管系统流量后才能阻止应用绕过内置 DNS。
 
 ## Loon 使用方法
