@@ -97,7 +97,7 @@ dns:
   # ── 运行参数 ──
   enable: true                               # 开启内置 DNS 服务
   cache-algorithm: arc                       # DNS 缓存淘汰算法 ARC 相比传统 LRU 命中率更高
-  listen: 0.0.0.0:1053                       # DNS 服务监听端口
+  listen: 0.0.0.0:53                         # 使用标准 DNS 端口，配合 macOS 系统 DNS 接管，避免局域网 DNS 绕过 TUN
   ipv6: false                                # 关闭 IPv6 解析 保持与全局设置一致
   respect-rules: true                        # DNS 请求遵循分流规则，由规则决定 DNS 查询走向而非固定出口
   prefer-h3: false                           # 优先使用 DoH/DoT 的 HTTP/3 传输，提升解析速度和稳定性
