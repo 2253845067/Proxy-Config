@@ -14,6 +14,14 @@
 #   - 广告规则走 REJECT-DROP。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
 #   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
+#
+# DNS / 泄漏防护（本次加固）：
+#   - fake-ip 过滤改为 rule 模式，只有明确 real-ip 的域名才下发真实 IP。
+#   - 关闭配置 hosts 与系统 hosts，本机 hosts 不再能改变解析结果。
+#   - 海外 nameserver 全部为 IP 直连 DoH，并经 Proxy 出境，不依赖明文 bootstrap。
+#   - direct-nameserver 使用国内 DoH，直连流量也不回落到明文 DNS。
+#   - 核心规则集改用 mrs 二进制格式（需 mihomo 1.18+），启动更快、内存更省。
+#   - 拒绝 UDP/443（QUIC），避免 QUIC 绕过代理与 UDP 泄漏。
 
 
 # 1. 全局参数 Global Settings
@@ -27,14 +35,18 @@ ipv6: false                                  # 关闭 IPv6 解析
 log-level: warning                           # 日志级别 仅记录警告和错误，保持后台清爽并节省硬盘
 
 # ── 分流与防封锁机制 ──
-# find-process-mode: "off"                     # 进程匹配模式: off 关闭进程规则/ strict 按需精准匹配/ always 强制查询耗性能
-# global-client-fingerprint: chrome            # 全局 TLS 指纹伪装: 伪装为正常浏览器，降低节点被墙概率 可选 chrome/ios/random 等
+# find-process-mode: "off"                   # 进程匹配模式: off 关闭进程规则/ strict 按需精准匹配/ always 强制查询耗性能
+# global-client-fingerprint: chrome          # 全局 TLS 指纹伪装: 伪装为正常浏览器，降低节点被墙概率 可选 chrome/ios/random 等
 
 # ── 性能与连接优化 ──
 unified-delay: true                          # 统一延迟计算方式
 tcp-concurrent: true                         # 开启 TCP 并发连接，大幅加快多图网页加载速度
 keep-alive-idle: 600                         # TCP 空闲 600 秒后启动保活探针
 keep-alive-interval: 15                      # 保活心跳包发送间隔 15 秒
+
+# ── GEO 数据库 ──
+geo-auto-update: true                        # 自动更新 GeoIP/GeoSite 数据库，避免 GEOIP 规则因数据过期误判
+geo-update-interval: 24                      # 更新间隔（小时）；不需要可整段删除
 
 # ── 运行状态持久化 ──
 profile:                                     # 记忆功能
@@ -55,12 +67,14 @@ profile:                                     # 记忆功能
 # ── Sniffer ──
 sniffer:
   enable: true                               # 核心开关 开启流量嗅探
+  parse-pure-ip: false                       # 纯 IP 连接不再嗅探，只处理本身带域名的连接，省一次拆包
+  override-destination: false                # 全局默认不改写目标，避免嗅探结果覆盖真实目的地址
   sniff:
     HTTP:
-      ports: [80, 8080]                      # 嗅探 HTTP 协议的标准端口及常见的非标大端口
+      ports: [80, 8080-8880]                 # 嗅探 HTTP 协议的标准端口及常见的非标大端口
       override-destination: true             # 局部覆盖 强制用嗅探到的真实域名替换 HTTP 请求中的假 IP
     TLS:
-      ports: [443]                           # 嗅探 HTTPS/TLS 加密流量，通过读取握手包中的 SNI 获取真实域名
+      ports: [443, 8443]                     # 嗅探 HTTPS/TLS 加密流量，通过读取握手包中的 SNI 获取真实域名
     QUIC:
       ports: [443]                           # 嗅探 QUIC HTTP/3 协议流量
   skip-domain:                               # 嗅探豁免名 遇到以下域名直接放行不拆包，防止破坏特殊协议导致断连
@@ -78,16 +92,18 @@ sniffer:
 # =======================================================
 # 3. 虚拟网卡 TUN
 # =======================================================
+
 tun:
   enable: true                               # 开启 TUN 虚拟网卡
-  stack: mixed                               # 混合网络栈：TCP 走 system (高性能)，UDP 走 gVisor (高兼容)
+  stack: mips                                # mihomo 自研协议栈：默认推荐，开销低且无需放行防火墙（旧内核不支持时改回 mixed）
   dns-hijack: ["any:53", "tcp://any:53"]     # 分别劫持 UDP/TCP DNS，彻底防止系统 DNS 绕过
   #device: nikki                             #使用nikki，混入全部不修改的情况，开启接口指定为nikki
 
-  auto-route: true                            # 自动接管系统路由，避免应用绕过 TUN 直连 DNS
-  auto-redirect: false                        # 桌面 GUI 由 TUN 路由接管，不启用 Linux 专用重定向
-  auto-detect-interface: true                 # 自动识别真实网络出口
-  strict-route: true                          # 严格路由，阻止 IPv4/IPv6 流量绕过 TUN
+  # 由内核接管路由：只有 TUN 真正跑起来，DNS 劫持与分流才成立
+  auto-route: true                           # 自动接管系统路由，避免应用绕过 TUN 直连 DNS
+  auto-redirect: false                       # 桌面 GUI 由 TUN 路由接管，不启用 Linux 专用重定向
+  auto-detect-interface: true                # 自动识别真实网络出口
+  strict-route: true                         # 严格路由，阻止 IPv4/IPv6 流量绕过 TUN
 
 # =======================================================
 # 4. DNS
@@ -97,46 +113,55 @@ dns:
   # ── 运行参数 ──
   enable: true                               # 开启内置 DNS 服务
   cache-algorithm: arc                       # DNS 缓存淘汰算法 ARC 相比传统 LRU 命中率更高
-  listen: 0.0.0.0:53                         # 使用标准 DNS 端口，配合 macOS 系统 DNS 接管，避免局域网 DNS 绕过 TUN
+  listen: 0.0.0.0:53                         # 标准 DNS 端口，便于系统 DNS 接管；若 53 被占用（Windows 常见于 ICS/Docker）改回 0.0.0.0:1053
   ipv6: false                                # 关闭 IPv6 解析 保持与全局设置一致
   respect-rules: true                        # DNS 请求遵循分流规则，由规则决定 DNS 查询走向而非固定出口
-  prefer-h3: false                           # 优先使用 DoH/DoT 的 HTTP/3 传输，提升解析速度和稳定性
+  prefer-h3: false                           # 与 respect-rules 同时开启容易互相干扰，官方也建议关闭
+  use-hosts: false                           # 不读取本配置里的 hosts，避免静态映射把域名带偏
+  use-system-hosts: false                    # 不读取系统 hosts，本机 hosts 不再能让域名解析绕过代理
+
+  # ── 基础 DNS ──
+  default-nameserver:                        # 引导 DNS 仅用于解析 DNS 服务器自身的域名，必须是 IP
+    - 223.5.5.5
+    - 223.6.6.6
+
+  proxy-server-nameserver:                   # 节点专线 专职解析节点与订阅域名，不经代理，避免先有鸡还是先有蛋
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+
+  direct-nameserver:                         # 直连兜底 走 DIRECT 的域名用它解析，同样是加密查询
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+  direct-nameserver-follow-policy: false     # 直连 DNS 不受 nameserver-policy 影响，避免两套策略互相覆盖
+
+  nameserver:                                # 国外兜底 未命中的域名走海外 DoH 并强制从 Proxy 出境
+    - https://1.1.1.1/dns-query#Proxy
+    - https://8.8.8.8/dns-query#Proxy
+
+  # ── DNS 分流 ──
+  nameserver-policy:
+    "rule-set:LocalAreaNetwork": [system]                                      # 内网域名交给系统 DNS，路由器/本机域名才能解析
+    "rule-set:UnBan": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]  # 连通性检测
+    "rule-set:NetEaseMusic": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]   # 网易云音乐
+    "rule-set:ChinaMedia": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]     # 国内媒体
+    "rule-set:ChinaDomain": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]    # 中国域名
 
   # ── Fake-IP ──
   enhanced-mode: fake-ip                     # 开启 Fake-IP 增强模式 秒回假 IP，极大提升网络响应速度
   fake-ip-range: 198.18.0.1/16               # IANA 保留给 网络基准测试用的段（RFC 2544/6815），明确不会公网路由，安全可靠
-  fake-ip-filter-mode: blacklist             # 黑名单过滤模式 名单内的域名不返回假 IP，要求真实解析
-
-  # ── DNS ──
-  default-nameserver:                        # 基础启动 用于最底层解析下方 proxy-server-nameserver 本身及代理节点的域名
-    - "https://1.1.1.1/dns-query"
-    - "https://8.8.8.8/dns-query"
-  proxy-server-nameserver:                   # 节点专线 专职负责解析 “节点” 和 “订阅链接” 的真实 IP
-    - "https://1.1.1.1/dns-query"
-    - "https://8.8.8.8/dns-query"
-  direct-nameserver:                         # 直连兜底 专职负责解析走 DIRECT 分流规则的域名
-    - "https://1.1.1.1/dns-query#Proxy"
-    - "https://8.8.8.8/dns-query#Proxy"
-  nameserver:                                # 国外兜底 处理所有未知的兜底域名，防止 DNS 污染 附带节点选择强制走代理出境
-    - https://8.8.8.8/dns-query#Proxy       # 通过代理发送 DoH，避免明文 DNS 暴露给本地网络
-    - https://1.1.1.1/dns-query#Proxy
-
-  # ── DNS 分流 ──
-  nameserver-policy:
-    "rule-set:LocalAreaNetwork": [system]
-    "rule-set:UnBan": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]             # 连通性检测
-    "rule-set:NetEaseMusic": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]      # 网易云音乐
-    "rule-set:ChinaMedia": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]        # 国内媒体
-    "rule-set:ChinaDomain": ["https://1.1.1.1/dns-query#Proxy", "https://8.8.8.8/dns-query#Proxy"]       # 中国域名
-
-  # ── Fake-IP ──
+  fake-ip-filter-mode: rule                  # 规则模式：自上而下匹配，命中 real-ip 才返回真实 IP，其余一律 fake-ip
   fake-ip-filter:
-    - "rule-set:LocalAreaNetwork"            # 局域网 / 私有网络：必须返回真实 IP，否则本地服务无法访问
-    - "rule-set:UnBan"                       # 连通性探测：返回假 IP 会导致 Windows/macOS 报断网
-    - "rule-set:Apple"                       # Apple 服务
-    - "rule-set:NetEaseMusic"                # 网易云音乐
-    - "rule-set:ChinaMedia"                  # 国内媒体
-    - "rule-set:ChinaDomain"                 # 中国域名
+    - DOMAIN-SUFFIX,lan,real-ip              # 局域网 / 私有网络：必须返回真实 IP，否则本地服务无法访问
+    - DOMAIN-SUFFIX,local,real-ip
+    - DOMAIN-SUFFIX,arpa,real-ip
+    - DOMAIN-SUFFIX,ntp.org,real-ip          # 时间同步：假 IP 会让 NTP 校验失败
+    - RULE-SET,LocalAreaNetwork,real-ip
+    - RULE-SET,UnBan,real-ip                 # 连通性探测：返回假 IP 会导致 Windows/macOS 报断网
+    - RULE-SET,Apple,real-ip                 # Apple 服务
+    - RULE-SET,NetEaseMusic,real-ip          # 网易云音乐
+    - RULE-SET,ChinaMedia,real-ip            # 国内媒体
+    - RULE-SET,ChinaDomain,real-ip           # 中国域名
+    - MATCH,fake-ip                          # 其余全部下发 fake-ip
 
 # =======================================================
 # 5. 策略组 Proxy Groups
@@ -159,6 +184,9 @@ proxy-groups:
 # =======================================================
 
 # ===== 远程规则集 Remote Rule =====
+# 两种格式：
+#   - mrs：MetaCubeX 二进制规则集，behavior 只能是 domain / ipcidr，加载快、内存小（mihomo 1.18+）
+#   - text：ACL4SSR classical 文本列表，逐行解析，体量大的列表尽量用 mrs 替代
 rule-providers:
   # ══════════════════════════════════════════
   # 1.REJECT
@@ -172,7 +200,7 @@ rule-providers:
   # ══════════════════════════════════════════
   # 2.DIRECT / CN
   # ══════════════════════════════════════════
-  LocalAreaNetwork:  {<<: *list-class,  path: ./ruleset/LocalAreaNetwork.list,  url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"}       # 局域网 / 私有网络
+  LocalAreaNetwork:  {<<: *list-class,  path: ./ruleset/LocalAreaNetwork.list,  url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"}       # 局域网 / 私有网络（含路由器管理域名，保留文本列表）
   UnBan:             {<<: *list-class,  path: ./ruleset/UnBan.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list"}                  # 连通性检测
   GoogleCN:          {<<: *list-class,  path: ./ruleset/GoogleCN.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list"}               # Google 国内直连
   SteamCN:           {<<: *list-class,  path: ./ruleset/SteamCN.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list"}        # Steam 国内节点
@@ -181,10 +209,9 @@ rule-providers:
   Tencent:           {<<: *list-class,  path: ./ruleset/Tencent.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list"}         # 腾讯系服务
   HuaWei:            {<<: *list-class,  path: ./ruleset/HuaWei.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list"}          # 华为服务
   ChinaMedia:        {<<: *list-class,  path: ./ruleset/ChinaMedia.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list"}             # 国内媒体
-  ChinaDomain:       {<<: *list-class,  path: ./ruleset/ChinaDomain.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"}            # 中国域名
+  ChinaDomain:       &mrs-domain {type: http, behavior: domain, format: mrs, interval: 86400, proxy: Proxy, path: ./ruleset/ChinaDomain.mrs, url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"}   # 中国域名
   ChinaCompanyIp:    {<<: *list-class,  path: ./ruleset/ChinaCompanyIp.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"}         # 中国公司 IP
-  ChinaIp:           {<<: *list-class,  behavior: ipcidr, path: ./ruleset/ChinaIp.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list"}           # 中国 IP
-  ChinaIpV6:         {<<: *list-class,  behavior: ipcidr, path: ./ruleset/ChinaIpV6.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list"}         # 中国 IPv6 IP
+  ChinaIp:           {<<: *mrs-domain,  behavior: ipcidr, path: ./ruleset/ChinaIp.mrs,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"}           # 中国 IP
   Download:          {<<: *list-class,  path: ./ruleset/Download.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"}               # 下载站点
 
   # ══════════════════════════════════════════
@@ -199,7 +226,7 @@ rule-providers:
   Twitter:           {<<: *list-class,  path: ./ruleset/Twitter.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list"}        # X / Twitter
   Facebook:          {<<: *list-class,  path: ./ruleset/Facebook.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list"}       # Facebook / Meta
   YouTube:           {<<: *list-class,  path: ./ruleset/YouTube.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"}        # YouTube
-  ProxyGFWlist:      {<<: *list-class,  path: ./ruleset/ProxyGFWlist.list,     url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list"}          # GFW 代理兜底
+  GFW:               {<<: *mrs-domain,  path: ./ruleset/GFW.mrs,                url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs"}             # GFW 代理兜底
   ProxyLite:         {<<: *list-class,  path: ./ruleset/ProxyLite.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list"}             # 精简代理列表
 
   # ── Google / Microsoft / Apple ──
@@ -239,9 +266,27 @@ rules:
   - RULE-SET,BanProgramAD,REJECT-DROP                                # 应用净化
 
   # ══════════════════════════════════════════
-  # 2.DIRECT / CN
+  # 2.DIRECT / 私有网络
   # ══════════════════════════════════════════
   - RULE-SET,LocalAreaNetwork,DIRECT                                 # 局域网 / 私有网络
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve                             # RFC1918 A 类私网
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve                          # 运营商级 NAT
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve                            # 本机回环
+  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve                         # 链路本地
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve                          # RFC1918 B 类私网
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve                         # RFC1918 C 类私网
+  - IP-CIDR,224.0.0.0/4,DIRECT,no-resolve                            # 组播（mDNS/SSDP 等本地发现）
+
+  # ══════════════════════════════════════════
+  # 3.QUIC 拦截
+  # ══════════════════════════════════════════
+  # 拒绝 UDP/443，让浏览器回落到 TCP/443：QUIC 走 UDP，很多节点不支持 UDP 转发，
+  # 放行会让这部分流量绕过代理直接暴露，或在节点上超时。不需要可整条注释掉。
+  - AND,((NETWORK,udp),(DST-PORT,443)),REJECT
+
+  # ══════════════════════════════════════════
+  # 4.DIRECT / CN
+  # ══════════════════════════════════════════
   - RULE-SET,UnBan,DIRECT                                            # 连通性检测
   - RULE-SET,GoogleCN,CN                                             # Google 国内直连
   - RULE-SET,SteamCN,CN                                              # Steam 国内节点
@@ -253,11 +298,10 @@ rules:
   - RULE-SET,ChinaDomain,CN                                          # 中国域名
   - RULE-SET,ChinaCompanyIp,CN,no-resolve                            # 中国公司 IP
   - RULE-SET,ChinaIp,CN,no-resolve                                   # 中国 IP
-  - RULE-SET,ChinaIpV6,CN,no-resolve                                 # 中国 IPv6 IP
   - RULE-SET,Download,CN                                             # 下载站点
 
   # ══════════════════════════════════════════
-  # 3.Proxy
+  # 5.Proxy
   # ══════════════════════════════════════════
   - RULE-SET,OpenAi,Proxy                                            # OpenAI
   - RULE-SET,AI-MIX,Proxy                                            # AI 综合
@@ -269,7 +313,7 @@ rules:
   - RULE-SET,Facebook,Proxy                                          # Facebook / Meta
   - RULE-SET,YouTube,Proxy                                           # YouTube
   - RULE-SET,ProxyLite,Proxy                                         # 精简代理列表
-  - RULE-SET,ProxyGFWlist,Proxy                                      # GFW 代理兜底
+  - RULE-SET,GFW,Proxy                                               # GFW 代理兜底
 
   # ── Google / Microsoft / Apple ──
   - RULE-SET,GoogleFCM,Proxy                                         # Google FCM

@@ -26,6 +26,12 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
    若预览提示“无法下载脚本”，先检查模板地址是否可访问；`gh-proxy.com` 中转地址可能返回 403，可改用上面的 GitHub 原始地址（Sub-Store 后端需能访问 GitHub）。
 4. 在客户端开启 TUN 模式并启用系统代理接管；模板已开启自动路由和严格路由，只有 TUN 真正运行后才能阻止应用绕过内置 DNS。
 
+> **内核要求**：核心规则集（`ChinaDomain` / `ChinaIp` / `GFW`）使用 MetaCubeX 的 mrs 二进制格式，需要 mihomo 1.18+；Mihomo Party、Clash Party、Nikki 自带内核均满足。若使用更旧的内核，把这三项的 `format: mrs` 去掉、URL 换回 ACL4SSR 的 `.list` 地址即可。
+>
+> **DNS 说明**：fake-ip 过滤为 `rule` 模式，只对明确标记 `real-ip` 的域名下发真实 IP；海外域名走 `#Proxy` 的 Cloudflare/Google DoH，国内域名与节点域名走国内 DoH（223.5.5.5 / doh.pub）。`use-system-hosts: false` 会忽略本机 hosts，若依赖 hosts 里的自定义解析，请改写进配置的 `hosts:` 段。
+>
+> **QUIC 拦截**：规则里有 `AND,((NETWORK,udp),(DST-PORT,443)),REJECT`，让浏览器回落到 TCP。若某些应用必须用 HTTP/3，注释掉这一条即可。
+
 ## Loon 使用方法
 
 1. 点击一键导入 [配置](https://www.nsloon.com/openloon/import?sub=https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/loon/loon.lcf)。
