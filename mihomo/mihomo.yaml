@@ -67,14 +67,16 @@ profile:                                     # 记忆功能
 # ── Sniffer ──
 sniffer:
   enable: true                               # 核心开关 开启流量嗅探
-  parse-pure-ip: false                       # 纯 IP 连接不再嗅探，只处理本身带域名的连接，省一次拆包
-  override-destination: false                # 全局默认不改写目标，避免嗅探结果覆盖真实目的地址
+  force-dns-mapping: true                    # 强制使用 DNS 缓存里的域名映射：目标已经是 IP 时也按域名走，配合 fake-ip 使用
+  parse-pure-ip: true                        # 纯 IP 连接也嗅探：系统 DNS 被污染时会连到假 IP，必须靠嗅探把真实域名捞回来
+  override-destination: true                 # 全局改写目标：用嗅探到的域名替换包里的（可能被污染的）IP
   sniff:
     HTTP:
       ports: [80, 8080-8880]                 # 嗅探 HTTP 协议的标准端口及常见的非标大端口
       override-destination: true             # 局部覆盖 强制用嗅探到的真实域名替换 HTTP 请求中的假 IP
     TLS:
       ports: [443, 8443]                     # 嗅探 HTTPS/TLS 加密流量，通过读取握手包中的 SNI 获取真实域名
+      override-destination: true             # 用 SNI 里的域名替换被污染的 IP，系统 DNS 没被 TUN 接管时靠这一条救回来
     QUIC:
       ports: [443]                           # 嗅探 QUIC HTTP/3 协议流量
   skip-domain:                               # 嗅探豁免名 遇到以下域名直接放行不拆包，防止破坏特殊协议导致断连
