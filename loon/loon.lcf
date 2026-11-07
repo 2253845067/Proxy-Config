@@ -84,6 +84,23 @@ CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githu
 DOMAIN-SUFFIX,report-online.sh.wxgateway.com,CN
 DOMAIN-SUFFIX,diancan.xibeilangsaoma.com,CN
 
+# ── Apple 推送 / iMessage / FaceTime 走代理 ──
+# 用途：iMessage、FaceTime 激活或收发异常时，把 APNs 相关域名与网段从「Apple 全量直连」里单独拎出来走代理。
+# 想无条件走代理就把下面的 场景分流 换成 Proxy；不需要时整段注释掉即可。
+DOMAIN,identity.apple.com,场景分流
+DOMAIN-SUFFIX,push.apple.com,场景分流
+DOMAIN-SUFFIX,akadns.net,场景分流
+DOMAIN-KEYWORD,apple.com.edgekey.net,场景分流
+IP-CIDR,17.249.0.0/16,场景分流,no-resolve
+IP-CIDR,17.252.0.0/16,场景分流,no-resolve
+IP-CIDR,17.57.144.0/22,场景分流,no-resolve
+IP-CIDR,17.188.128.0/18,场景分流,no-resolve
+IP-CIDR,17.188.20.0/23,场景分流,no-resolve
+IP-CIDR6,2620:149:a44::/48,场景分流,no-resolve
+IP-CIDR6,2403:300:a42::/48,场景分流,no-resolve
+IP-CIDR6,2403:300:a51::/48,场景分流,no-resolve
+IP-CIDR6,2a01:b740:a42::/48,场景分流,no-resolve
+
 # ── 掐断 QUIC，让浏览器回落到 TCP（与 mihomo 配置一致）──
 AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT
 

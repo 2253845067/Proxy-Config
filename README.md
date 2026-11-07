@@ -51,6 +51,8 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 >
 > **QUIC 拦截**：本地规则里有 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT`，掐掉 QUIC 让浏览器回落 TCP（与 Mihomo 模板保持一致）。若某些应用必须用 HTTP/3，注释掉这一条即可。
 >
+> **Apple 推送（APNs / iMessage / FaceTime）**：本地 `[Rule]` 里把 APNs 的域名（`identity.apple.com`、`push.apple.com`、`akadns.net`、`apple.com.edgekey.net`）和 Apple 的 `17.x` / IPv6 网段单独指向 `场景分流`，用于解决 iMessage、FaceTime 激活或收发异常。本地规则优先于订阅规则，因此它会盖住订阅里 `Apple.list → CN` 的整体直连；想无条件走代理就把这 13 行的 `场景分流` 换成 `Proxy`，不需要时整段注释掉。这段是社区「苹果 APNs 推送」插件的规则内联版，**不要再重复安装那个插件**（重复规则不报错但会冗余）。改完规则后要开关一次飞行模式断开所有连接才会生效；仍不行再到 Loon → 设置 → 隧道，打开「包含所有网络」和「APNs」开关。
+>
 > **插件与 MITM**：插件自带的 MITM 域名会合并进配置；番茄系去广告插件的域名已在 `[Mitm]` 里显式声明，禁用该插件后记得把这行一起删掉。插件行里的 `pin=true` 只表示“把插件固定在列表前部、不参与自动重排”（官方示例配置用它保护核心防泄漏插件），与是否跟随上游更新无关。`ca-p12` / `ca-passphrase` 留空由 Loon 管理证书，本仓库是公开仓库，切勿填入自己的证书内容。
 
 > **WiFi 分流（可选）**：若你使用透明代理路由器，把配置中的 `WiFi1` / `WiFi2` 替换为路由器 WiFi 名称、`10.0.0.1` / `10.0.0.2` 替换为对应路由器管理 IP。连上这些 WiFi 时 Loon 自动走直连（由路由器代理翻墙），其他网络由 Loon 自动分流，避免双重代理。
