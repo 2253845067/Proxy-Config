@@ -26,7 +26,11 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
    若预览提示“无法下载脚本”，先检查模板地址是否可访问；`gh-proxy.com` 中转地址可能返回 403，可改用上面的 GitHub 原始地址（Sub-Store 后端需能访问 GitHub）。
 4. 在客户端开启 TUN 模式并启用系统代理接管；模板已开启自动路由和严格路由，只有 TUN 真正运行后才能阻止应用绕过内置 DNS。
 
-> **内核要求**：核心规则集（`ChinaDomain` / `ChinaIp` / `GFW`）使用 MetaCubeX 的 mrs 二进制格式，需要 mihomo 1.18+；Mihomo Party、Clash Party、Nikki 自带内核均满足。若使用更旧的内核，把这三项的 `format: mrs` 去掉、URL 换回 ACL4SSR 的 `.list` 地址即可。
+> **规则来源**：规则集全部取自 [Repcz/Tool](https://github.com/Repcz/Tool)（分支 `X`）对应的 `mihomo/Rules`、`Loon/Rules`、`Egern/Rules`、`sing-box/Rules` 目录，经 gh-proxy 中转引用，上游每天自动重建，本仓库只引用不镜像内容。mihomo / Loon / Egern 各 46 个，sing-box 45 个（上游没有 `ChinaASN.srs`，sing-box 也不支持 ASN 匹配）。原先的 ACL4SSR 大列表（`BanEasyList` 4.1 万条 + `BanEasyPrivacy` 4 万条 + 其余三项，合计约 8.7 万条）已整体下线，换成 `Reject`（6200 条精选）+ `Ads_AWAvenue`（国内 App 净化），内存占用与启动解析量大幅下降。四端共用同一套规则源，不再出现同一域名在不同客户端分流不一致的问题。
+>
+> 国内判定为四层递进：`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底。`ChinaASN` 依赖真实目标 IP，因此带 `no-resolve`，只在已拿到 IP 的连接上生效。
+>
+> 规则集为经典文本列表（`classical` / `behavior: classical`），不再依赖 mihomo 1.18+ 的 mrs 格式，旧内核也能跑。
 >
 > **DNS 说明**：fake-ip 过滤为 `rule` 模式，只对明确标记 `real-ip` 的域名下发真实 IP；海外域名走 `#Proxy` 的 Cloudflare/Google DoH，国内域名与节点域名走国内 DoH（223.5.5.5 / doh.pub）。`use-system-hosts: false` 会忽略本机 hosts，若依赖 hosts 里的自定义解析，请改写进配置的 `hosts:` 段。内置 DNS 监听 `0.0.0.0:1053`（内核默认端口）：53 端口由 TUN 的 `dns-hijack` 接管，因此既不占 53（避免与 Windows ICS/Docker 冲突），也不会因为 `allow-lan: true` 在局域网暴露一个开放解析器。
 >
@@ -98,7 +102,7 @@ QUIC 拦截与其余三端保持一致：规则里有一条 `{"network":"udp","p
 
 `CN` 策略组只有 `direct` / `Proxy` 两个选项：官方已弃用 `block` 出站，REJECT 需通过规则 `action: reject` 实现，因此不再往组里塞 REJECT（这点与 Mihomo / Egern 的 `CN` 组略有不同）。
 
-规则集使用 sing-box 原生 `.srs` 文件，并在首次启动时经 `ghfast.top` 从 SagerNet 仓库下载。导入前可用对应的 reF1nd 核心检查配置：
+规则集使用 sing-box 原生 `.srs` 文件，同样来自 Repcz/Tool 的 `sing-box/Rules/`，首次启动时经 `ghfast.top` 下载。若运行时提示规则集解析失败，说明本地 reF1nd 核心版本落后于规则集格式，优先升级核心，不要改回旧的 SagerNet 规则集（域名覆盖差很多）。导入前可用对应的 reF1nd 核心检查配置：
 
 ```text
 sing-box check -c singbox/config.json

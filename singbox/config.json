@@ -93,7 +93,7 @@
         "server": "local"
       },
       {
-        "rule_set": ["private", "cn-domains", "cn-services"],
+        "rule_set": ["Lan", "ChinaDomain", "WeChat", "Bilibili"],
         "action": "route",
         "server": "cn"
       }
@@ -158,154 +158,362 @@
     "default_domain_resolver": "cn",
     "rule_set": [
       {
-        "tag": "ads",
+        "tag": "Reject",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-category-ads-all.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Reject.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "private",
+        "tag": "Ads_AWAvenue",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-private.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Ads_AWAvenue.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "cn-domains",
+        "tag": "Lan",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-cn.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Lan.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "cn-services",
+        "tag": "Direct",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-netease.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Direct.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "cn-ip",
+        "tag": "WeChat",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geoip/raw/rule-set/geoip-cn.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/WeChat.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "google-cn",
+        "tag": "Bilibili",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-google%40cn.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Bilibili.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "steam-cn",
+        "tag": "AppleCN",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-steam%40cn.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/AppleCN.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "cn-services-extra",
+        "tag": "OneDrive",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-tencent.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/OneDrive.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "huawei",
+        "tag": "DownloadCDN_CN",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-huawei.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/DownloadCDN_CN.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "openai",
+        "tag": "ChinaDomain",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-openai.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/ChinaDomain.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "telegram",
+        "tag": "ChinaIP",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-telegram.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/ChinaIP.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "github",
+        "tag": "AI",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-github.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/AI.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "discord",
+        "tag": "OpenAI",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-discord.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/OpenAI.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "tiktok",
+        "tag": "Telegram",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-tiktok.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Telegram.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "twitter",
+        "tag": "Twitter",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-twitter.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Twitter.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "facebook",
+        "tag": "Facebook",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-facebook.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Facebook.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "youtube",
+        "tag": "Instagram",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-youtube.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Instagram.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "netflix",
+        "tag": "TikTok",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-netflix.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/TikTok.srs",
         "http_client": "download",
         "update_interval": "1d"
       },
       {
-        "tag": "spotify",
+        "tag": "Reddit",
         "type": "remote",
         "format": "binary",
-        "url": "https://ghfast.top/https://github.com/SagerNet/sing-geosite/raw/rule-set/geosite-spotify.srs",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Reddit.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Google",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Google.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Github",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Github.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Microsoft",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Microsoft.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "YouTube",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/YouTube.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Netflix",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Netflix.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Disney",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Disney.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "HBO",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/HBO.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "PrimeVideo",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/PrimeVideo.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Emby",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Emby.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Spotify",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Spotify.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Bahamut",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Bahamut.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Steam",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Steam.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Epic",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Epic.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "EA",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/EA.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Blizzard",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Blizzard.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Nintendo",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Nintendo.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Xbox",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Xbox.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "UBI",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/UBI.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Game",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Game.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Crypto",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Crypto.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "TronLink",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/TronLink.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "PayPal",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/PayPal.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "Cloudflare",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Cloudflare.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "DownloadCDN_Global",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/DownloadCDN_Global.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "AppleServers",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/AppleServers.srs",
+        "http_client": "download",
+        "update_interval": "1d"
+      },
+      {
+        "tag": "ProxyAll",
+        "type": "remote",
+        "format": "binary",
+        "url": "https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/Proxy.srs",
         "http_client": "download",
         "update_interval": "1d"
       }
@@ -319,7 +527,7 @@
         "action": "hijack-dns"
       },
       {
-        "rule_set": ["ads"],
+        "rule_set": ["Reject", "Ads_AWAvenue"],
         "action": "reject"
       },
       {
@@ -327,7 +535,7 @@
         "outbound": "direct"
       },
       {
-        "rule_set": ["private"],
+        "rule_set": ["Lan", "Direct"],
         "outbound": "direct"
       },
       {
@@ -336,11 +544,11 @@
         "action": "reject"
       },
       {
-        "rule_set": ["google-cn", "steam-cn", "cn-services", "cn-services-extra", "huawei", "cn-domains"],
+        "rule_set": ["WeChat", "Bilibili", "AppleCN", "OneDrive", "DownloadCDN_CN", "ChinaDomain"],
         "outbound": "CN"
       },
       {
-        "rule_set": ["openai", "telegram", "github", "discord", "tiktok", "twitter", "facebook", "youtube", "netflix", "spotify"],
+        "rule_set": ["AI", "OpenAI", "Telegram", "Twitter", "Facebook", "Instagram", "TikTok", "Reddit", "Google", "Github", "Microsoft", "YouTube", "Netflix", "Disney", "HBO", "PrimeVideo", "Emby", "Spotify", "Bahamut", "Steam", "Epic", "EA", "Blizzard", "Nintendo", "Xbox", "UBI", "Game", "Crypto", "TronLink", "PayPal", "Cloudflare", "DownloadCDN_Global", "AppleServers", "ProxyAll"],
         "outbound": "Proxy"
       },
       {
@@ -352,7 +560,7 @@
         "outbound": "direct"
       },
       {
-        "rule_set": ["cn-ip"],
+        "rule_set": ["ChinaIP"],
         "outbound": "CN"
       }
     ],
@@ -371,4 +579,3 @@
     }
   }
 }
-

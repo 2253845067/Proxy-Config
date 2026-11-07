@@ -109,63 +109,60 @@ GEOIP,CN,CN,no-resolve
 FINAL,场景分流
 
 [Remote Rule]
+# 全部来自 Repcz/Tool（分支 X）的 Loon 列表，上游每日自动重建
 # ── REJECT ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list, policy=REJECT, tag=BanAD, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list, policy=REJECT, tag=BanEasyList, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list, policy=REJECT, tag=BanEasyListChina, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list, policy=REJECT, tag=BanEasyPrivacy, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list, policy=REJECT, tag=BanProgramAD, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Reject.list, policy=REJECT, tag=Reject, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Ads_AWAvenue.list, policy=REJECT, tag=Ads_AWAvenue, enabled=true
 
-# ── DIRECT / CN ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list, policy=DIRECT, tag=LocalAreaNetwork, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list, policy=DIRECT, tag=UnBan, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list, policy=CN, tag=GoogleCN, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list, policy=CN, tag=SteamCN, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list, policy=CN, tag=NetEaseMusic, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Wechat.list, policy=CN, tag=Wechat, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list, policy=CN, tag=Tencent, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list, policy=CN, tag=HuaWei, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list, policy=CN, tag=ChinaMedia, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list, policy=CN, tag=ChinaDomain, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list, policy=CN, tag=ChinaCompanyIp, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list, policy=CN, tag=ChinaIp, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list, policy=CN, tag=ChinaIpV6, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list, policy=CN, tag=Download, enabled=true
+# ── DIRECT ──
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Lan.list, policy=DIRECT, tag=Lan, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Direct.list, policy=DIRECT, tag=Direct, enabled=true
 
-# ── Proxy ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list, policy=场景分流, tag=OpenAI, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list, policy=场景分流, tag=AI-MIX, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list, policy=场景分流, tag=Telegram, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list, policy=场景分流, tag=GitHub, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list, policy=场景分流, tag=Discord, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list, policy=场景分流, tag=TikTok, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list, policy=场景分流, tag=Twitter, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list, policy=场景分流, tag=Facebook, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list, policy=场景分流, tag=YouTube, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyGFWlist.list, policy=场景分流, tag=ProxyGFWlist, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list, policy=场景分流, tag=ProxyLite, enabled=true
+# ── CN ──
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/WeChat.list, policy=CN, tag=WeChat, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Bilibili.list, policy=CN, tag=Bilibili, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/AppleCN.list, policy=CN, tag=AppleCN, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/OneDrive.list, policy=CN, tag=OneDrive, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/DownloadCDN_CN.list, policy=CN, tag=DownloadCDN_CN, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/ChinaDomain.list, policy=CN, tag=ChinaDomain, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/ChinaASN.list, policy=CN, tag=ChinaASN, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/ChinaIP.list, policy=CN, tag=ChinaIP, enabled=true
 
-# ── Google / Microsoft / Apple ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list, policy=场景分流, tag=GoogleFCM, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list, policy=CN, tag=Bing, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list, policy=CN, tag=OneDrive, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list, policy=CN, tag=Microsoft, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list, policy=CN, tag=Apple, enabled=true
-
-# ── 游戏 / 媒体 ──
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list, policy=CN, tag=Epic, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list, policy=CN, tag=Origin, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list, policy=CN, tag=Sony, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list, policy=场景分流, tag=Steam, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list, policy=CN, tag=Nintendo, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list, policy=CN, tag=TapTap, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list, policy=场景分流, tag=Netflix, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list, policy=场景分流, tag=Spotify, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list, policy=场景分流, tag=Bahamut, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list, policy=CN, tag=BilibiliHMT, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list, policy=CN, tag=Bilibili, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list, policy=场景分流, tag=ProxyMedia, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list, policy=场景分流, tag=Xbox, enabled=true
+# ── Proxy（走 场景分流）──
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/AI.list, policy=场景分流, tag=AI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/OpenAI.list, policy=场景分流, tag=OpenAI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Telegram.list, policy=场景分流, tag=Telegram, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Twitter.list, policy=场景分流, tag=Twitter, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Facebook.list, policy=场景分流, tag=Facebook, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Instagram.list, policy=场景分流, tag=Instagram, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/TikTok.list, policy=场景分流, tag=TikTok, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Reddit.list, policy=场景分流, tag=Reddit, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Google.list, policy=场景分流, tag=Google, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Github.list, policy=场景分流, tag=Github, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Microsoft.list, policy=场景分流, tag=Microsoft, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/YouTube.list, policy=场景分流, tag=YouTube, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Netflix.list, policy=场景分流, tag=Netflix, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Disney.list, policy=场景分流, tag=Disney, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/HBO.list, policy=场景分流, tag=HBO, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/PrimeVideo.list, policy=场景分流, tag=PrimeVideo, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Emby.list, policy=场景分流, tag=Emby, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Spotify.list, policy=场景分流, tag=Spotify, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Bahamut.list, policy=场景分流, tag=Bahamut, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Steam.list, policy=场景分流, tag=Steam, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Epic.list, policy=场景分流, tag=Epic, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/EA.list, policy=场景分流, tag=EA, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Blizzard.list, policy=场景分流, tag=Blizzard, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Nintendo.list, policy=场景分流, tag=Nintendo, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Xbox.list, policy=场景分流, tag=Xbox, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/UBI.list, policy=场景分流, tag=UBI, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Game.list, policy=场景分流, tag=Game, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Crypto.list, policy=场景分流, tag=Crypto, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/TronLink.list, policy=场景分流, tag=TronLink, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/PayPal.list, policy=场景分流, tag=PayPal, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Cloudflare.list, policy=场景分流, tag=Cloudflare, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/DownloadCDN_Global.list, policy=场景分流, tag=DownloadCDN_Global, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/AppleServers.list, policy=场景分流, tag=AppleServers, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/Proxy.list, policy=场景分流, tag=Proxy, enabled=true
 
 [Host]
 # 每个透明代理路由器 WiFi 一行，IP 填各自路由器管理 IP

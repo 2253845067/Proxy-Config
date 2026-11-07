@@ -11,6 +11,7 @@
 #   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则：
+#   - 规则集统一使用 Repcz/Tool（分支 X）的 mihomo 列表，每日自动重建。
 #   - 广告规则走 REJECT-DROP。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
 #   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
@@ -20,7 +21,7 @@
 #   - 关闭配置 hosts 与系统 hosts，本机 hosts 不再能改变解析结果。
 #   - 海外 nameserver 全部为 IP 直连 DoH，并经 Proxy 出境，不依赖明文 bootstrap。
 #   - direct-nameserver 使用国内 DoH，直连流量也不回落到明文 DNS。
-#   - 核心规则集改用 mrs 二进制格式（需 mihomo 1.18+），启动更快、内存更省。
+#   - 规则集为文本 classical 列表，随规则源每日更新。
 #   - 拒绝 UDP/443（QUIC），避免 QUIC 绕过代理与 UDP 泄漏。
 
 
@@ -141,10 +142,8 @@ dns:
 
   # ── DNS 分流 ──
   nameserver-policy:
-    "rule-set:LocalAreaNetwork": [system]                                      # 内网域名交给系统 DNS，路由器/本机域名才能解析
-    "rule-set:UnBan": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]  # 连通性检测
-    "rule-set:NetEaseMusic": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]   # 网易云音乐
-    "rule-set:ChinaMedia": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]     # 国内媒体
+    "rule-set:Lan": [system]                                                  # 内网域名交给系统 DNS，路由器/本机域名才能解析
+    "rule-set:Direct": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]  # 直连杂项
     "rule-set:ChinaDomain": [https://223.5.5.5/dns-query, https://doh.pub/dns-query]    # 中国域名
 
   # ── Fake-IP ──
@@ -156,11 +155,9 @@ dns:
     - DOMAIN-SUFFIX,local,real-ip
     - DOMAIN-SUFFIX,arpa,real-ip
     - DOMAIN-SUFFIX,ntp.org,real-ip          # 时间同步：假 IP 会让 NTP 校验失败
-    - RULE-SET,LocalAreaNetwork,real-ip
-    - RULE-SET,UnBan,real-ip                 # 连通性探测：返回假 IP 会导致 Windows/macOS 报断网
-    - RULE-SET,Apple,real-ip                 # Apple 服务
-    - RULE-SET,NetEaseMusic,real-ip          # 网易云音乐
-    - RULE-SET,ChinaMedia,real-ip            # 国内媒体
+    - RULE-SET,Lan,real-ip                   # 局域网 / 私有网络
+    - RULE-SET,Direct,real-ip                # 直连杂项：返回假 IP 会导致 Windows/macOS 报断网
+    - RULE-SET,AppleCN,real-ip               # Apple 中国区服务
     - RULE-SET,ChinaDomain,real-ip           # 中国域名
     - MATCH,fake-ip                          # 其余全部下发 fake-ip
 
@@ -185,72 +182,67 @@ proxy-groups:
 # =======================================================
 
 # ===== 远程规则集 Remote Rule =====
-# 两种格式：
-#   - mrs：MetaCubeX 二进制规则集，behavior 只能是 domain / ipcidr，加载快、内存小（mihomo 1.18+）
-#   - text：ACL4SSR classical 文本列表，逐行解析，体量大的列表尽量用 mrs 替代
+# 全部使用 Repcz/Tool（分支 X）的 mihomo 文本列表，behavior: classical，经 gh-proxy 中转。
+# 上游每天自动重建，规则增删直接跟随，无需自己维护。
 rule-providers:
+  # 全部来自 Repcz/Tool（分支 X），每日自动重建，文本 classical 列表，经 gh-proxy 中转
   # ══════════════════════════════════════════
   # 1.REJECT
   # ══════════════════════════════════════════
-  BanAD:             &list-class {type: http, behavior: classical, format: text, interval: 86400, proxy: Proxy, path: ./ruleset/BanAD.list, url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list"}                  # 广告拦截
-  BanEasyList:       {<<: *list-class,  path: ./ruleset/BanEasyList.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyList.list"}       # 广告拦截
-  BanEasyListChina:  {<<: *list-class,  path: ./ruleset/BanEasyListChina.list,  url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyListChina.list"}  # 广告拦截
-  BanEasyPrivacy:    {<<: *list-class,  path: ./ruleset/BanEasyPrivacy.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanEasyPrivacy.list"}    # 广告拦截
-  BanProgramAD:      {<<: *list-class,  path: ./ruleset/BanProgramAD.list,      url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanProgramAD.list"}           # 应用净化
+  Reject:            &list-class {type: http, behavior: classical, format: text, interval: 86400, proxy: Proxy, path: ./ruleset/Reject.list, url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Reject.list"}   # 广告 / 追踪拦截（精选 6200 条）
+  Ads_AWAvenue:      {<<: *list-class,  path: ./ruleset/Ads_AWAvenue.list,      url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Ads_AWAvenue.list"}        # 国内 App 广告净化
 
   # ══════════════════════════════════════════
   # 2.DIRECT / CN
   # ══════════════════════════════════════════
-  LocalAreaNetwork:  {<<: *list-class,  path: ./ruleset/LocalAreaNetwork.list,  url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"}       # 局域网 / 私有网络（含路由器管理域名，保留文本列表）
-  UnBan:             {<<: *list-class,  path: ./ruleset/UnBan.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list"}                  # 连通性检测
-  GoogleCN:          {<<: *list-class,  path: ./ruleset/GoogleCN.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list"}               # Google 国内直连
-  SteamCN:           {<<: *list-class,  path: ./ruleset/SteamCN.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list"}        # Steam 国内节点
-  NetEaseMusic:      {<<: *list-class,  path: ./ruleset/NetEaseMusic.list,      url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/NetEaseMusic.list"}   # 网易云音乐
-  Wechat:            {<<: *list-class,  path: ./ruleset/Wechat.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Wechat.list"}          # 微信 / 微信支付
-  Tencent:           {<<: *list-class,  path: ./ruleset/Tencent.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Tencent.list"}         # 腾讯系服务
-  HuaWei:            {<<: *list-class,  path: ./ruleset/HuaWei.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HuaWei.list"}          # 华为服务
-  ChinaMedia:        {<<: *list-class,  path: ./ruleset/ChinaMedia.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaMedia.list"}             # 国内媒体
-  ChinaDomain:       &mrs-domain {type: http, behavior: domain, format: mrs, interval: 86400, proxy: Proxy, path: ./ruleset/ChinaDomain.mrs, url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs"}   # 中国域名
-  ChinaCompanyIp:    {<<: *list-class,  path: ./ruleset/ChinaCompanyIp.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"}         # 中国公司 IP
-  ChinaIp:           {<<: *mrs-domain,  behavior: ipcidr, path: ./ruleset/ChinaIp.mrs,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs"}           # 中国 IP
-  Download:          {<<: *list-class,  path: ./ruleset/Download.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"}               # 下载站点
+  Lan:               {<<: *list-class,  path: ./ruleset/Lan.list,               url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Lan.list"}                 # 局域网 / 私有网段
+  Direct:            {<<: *list-class,  path: ./ruleset/Direct.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Direct.list"}              # 应直连的杂项（NTP / 统计上报等）
+  WeChat:            {<<: *list-class,  path: ./ruleset/WeChat.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/WeChat.list"}              # 微信 / 微信支付
+  Bilibili:          {<<: *list-class,  path: ./ruleset/Bilibili.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Bilibili.list"}            # B 站
+  AppleCN:           {<<: *list-class,  path: ./ruleset/AppleCN.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/AppleCN.list"}             # Apple 中国区服务
+  OneDrive:          {<<: *list-class,  path: ./ruleset/OneDrive.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/OneDrive.list"}            # OneDrive
+  DownloadCDN_CN:    {<<: *list-class,  path: ./ruleset/DownloadCDN_CN.list,    url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/DownloadCDN_CN.list"}      # 国内下载 CDN
+  ChinaDomain:       {<<: *list-class,  path: ./ruleset/ChinaDomain.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/ChinaDomain.list"}         # 中国域名（1.3 万条 suffix）
+  ChinaIP:           {<<: *list-class,  path: ./ruleset/ChinaIP.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/ChinaIP.list"}             # 中国 IP
+  ChinaASN:          {<<: *list-class,  path: ./ruleset/ChinaASN.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/ChinaASN.list"}            # 中国运营商 ASN（5076 条，补 ChinaIP 漏判）
 
   # ══════════════════════════════════════════
   # 3.Proxy
   # ══════════════════════════════════════════
-  OpenAi:            {<<: *list-class,  path: ./ruleset/OpenAi.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list"}         # OpenAI
-  AI-MIX:            {<<: *list-class,  path: ./ruleset/AI.list,                url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list"}             # AI 综合
-  Telegram:          {<<: *list-class,  path: ./ruleset/Telegram.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list"}              # Telegram
-  GitHub:            {<<: *list-class,  path: ./ruleset/Github.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list"}         # GitHub
-  Discord:           {<<: *list-class,  path: ./ruleset/Discord.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list"}        # Discord
-  TikTok:            {<<: *list-class,  path: ./ruleset/TikTok.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list"}         # TikTok
-  Twitter:           {<<: *list-class,  path: ./ruleset/Twitter.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list"}        # X / Twitter
-  Facebook:          {<<: *list-class,  path: ./ruleset/Facebook.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Facebook.list"}       # Facebook / Meta
-  YouTube:           {<<: *list-class,  path: ./ruleset/YouTube.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"}        # YouTube
-  GFW:               {<<: *mrs-domain,  path: ./ruleset/GFW.mrs,                url: "https://gh-proxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs"}             # GFW 代理兜底
-  ProxyLite:         {<<: *list-class,  path: ./ruleset/ProxyLite.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list"}             # 精简代理列表
-
-  # ── Google / Microsoft / Apple ──
-  GoogleFCM:         {<<: *list-class,  path: ./ruleset/GoogleFCM.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GoogleFCM.list"}      # Google FCM
-  Bing:              {<<: *list-class,  path: ./ruleset/Bing.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Bing.list"}                   # Bing
-  OneDrive:          {<<: *list-class,  path: ./ruleset/OneDrive.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/OneDrive.list"}               # OneDrive
-  Microsoft:         {<<: *list-class,  path: ./ruleset/Microsoft.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list"}              # Microsoft
-  Apple:             {<<: *list-class,  path: ./ruleset/Apple.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list"}                  # Apple
-
-  # ── 游戏 / 媒体 ──
-  Epic:              {<<: *list-class,  path: ./ruleset/Epic.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list"}           # Epic Games
-  Origin:            {<<: *list-class,  path: ./ruleset/Origin.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list"}         # EA / Origin
-  Sony:              {<<: *list-class,  path: ./ruleset/Sony.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list"}           # PlayStation
-  Steam:             {<<: *list-class,  path: ./ruleset/Steam.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list"}          # Steam
-  Nintendo:          {<<: *list-class,  path: ./ruleset/Nintendo.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list"}       # Nintendo
-  TapTap:            {<<: *list-class,  path: ./ruleset/TapTap.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list"}         # TapTap
-  Netflix:           {<<: *list-class,  path: ./ruleset/Netflix.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list"}        # Netflix
-  Spotify:           {<<: *list-class,  path: ./ruleset/Spotify.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list"}        # Spotify
-  Bahamut:           {<<: *list-class,  path: ./ruleset/Bahamut.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bahamut.list"}        # 巴哈姆特
-  BilibiliHMT:       {<<: *list-class,  path: ./ruleset/BilibiliHMT.list,       url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/BilibiliHMT.list"}    # B 站港澳台
-  Bilibili:          {<<: *list-class,  path: ./ruleset/Bilibili.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Bilibili.list"}       # B 站主域名
-  ProxyMedia:        {<<: *list-class,  path: ./ruleset/ProxyMedia.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyMedia.list"}             # 海外媒体
-  Xbox:              {<<: *list-class,  path: ./ruleset/Xbox.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list"}          # Xbox / Microsoft Gaming
+  AI:                {<<: *list-class,  path: ./ruleset/AI.list,                url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/AI.list"}                   # AI 综合（含 Gemini / Claude / ChatGPT）
+  OpenAI:            {<<: *list-class,  path: ./ruleset/OpenAI.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/OpenAI.list"}               # OpenAI 补充
+  Telegram:          {<<: *list-class,  path: ./ruleset/Telegram.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Telegram.list"}             # Telegram
+  Twitter:           {<<: *list-class,  path: ./ruleset/Twitter.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Twitter.list"}              # X / Twitter
+  Facebook:          {<<: *list-class,  path: ./ruleset/Facebook.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Facebook.list"}             # Facebook / Meta
+  Instagram:         {<<: *list-class,  path: ./ruleset/Instagram.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Instagram.list"}            # Instagram
+  TikTok:            {<<: *list-class,  path: ./ruleset/TikTok.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/TikTok.list"}               # TikTok
+  Reddit:            {<<: *list-class,  path: ./ruleset/Reddit.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Reddit.list"}               # Reddit
+  Google:            {<<: *list-class,  path: ./ruleset/Google.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Google.list"}               # Google
+  Github:            {<<: *list-class,  path: ./ruleset/Github.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Github.list"}               # GitHub
+  Microsoft:         {<<: *list-class,  path: ./ruleset/Microsoft.list,         url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Microsoft.list"}            # Microsoft
+  YouTube:           {<<: *list-class,  path: ./ruleset/YouTube.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/YouTube.list"}              # YouTube
+  Netflix:           {<<: *list-class,  path: ./ruleset/Netflix.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Netflix.list"}              # Netflix
+  Disney:            {<<: *list-class,  path: ./ruleset/Disney.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Disney.list"}               # Disney+
+  HBO:               {<<: *list-class,  path: ./ruleset/HBO.list,               url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/HBO.list"}                  # HBO Max
+  PrimeVideo:        {<<: *list-class,  path: ./ruleset/PrimeVideo.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/PrimeVideo.list"}           # Prime Video
+  Emby:              {<<: *list-class,  path: ./ruleset/Emby.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Emby.list"}                 # Emby
+  Spotify:           {<<: *list-class,  path: ./ruleset/Spotify.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Spotify.list"}              # Spotify
+  Bahamut:           {<<: *list-class,  path: ./ruleset/Bahamut.list,           url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Bahamut.list"}              # 巴哈姆特
+  Steam:             {<<: *list-class,  path: ./ruleset/Steam.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Steam.list"}                # Steam
+  Epic:              {<<: *list-class,  path: ./ruleset/Epic.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Epic.list"}                 # Epic Games
+  EA:                {<<: *list-class,  path: ./ruleset/EA.list,                url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/EA.list"}                   # EA / Origin
+  Blizzard:          {<<: *list-class,  path: ./ruleset/Blizzard.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Blizzard.list"}             # 暴雪
+  Nintendo:          {<<: *list-class,  path: ./ruleset/Nintendo.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Nintendo.list"}             # Nintendo
+  Xbox:              {<<: *list-class,  path: ./ruleset/Xbox.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Xbox.list"}                 # Xbox
+  UBI:               {<<: *list-class,  path: ./ruleset/UBI.list,               url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/UBI.list"}                  # Ubisoft / Uplay
+  Game:              {<<: *list-class,  path: ./ruleset/Game.list,              url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Game.list"}                 # 其他游戏平台
+  Crypto:            {<<: *list-class,  path: ./ruleset/Crypto.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Crypto.list"}               # 加密货币 / 交易所
+  TronLink:          {<<: *list-class,  path: ./ruleset/TronLink.list,          url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/TronLink.list"}             # TronLink 钱包
+  PayPal:            {<<: *list-class,  path: ./ruleset/PayPal.list,            url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/PayPal.list"}               # PayPal
+  Cloudflare:        {<<: *list-class,  path: ./ruleset/Cloudflare.list,        url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Cloudflare.list"}           # Cloudflare
+  DownloadCDN_Global: {<<: *list-class, path: ./ruleset/DownloadCDN_Global.list, url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/DownloadCDN_Global.list"}  # 海外下载 CDN
+  AppleServers:      {<<: *list-class,  path: ./ruleset/AppleServers.list,      url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/AppleServers.list"}        # Apple 需代理的服务器（iCloud 中继等）
+  ProxyAll:          {<<: *list-class,  path: ./ruleset/Proxy.list,             url: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/mihomo/Rules/Proxy.list"}               # 代理兜底大列表（1.7 万条，替代原 ProxyLite + GFW）
 
 # =======================================================
 # 7. 分流规则 Rules
@@ -260,16 +252,14 @@ rules:
   # ══════════════════════════════════════════
   # 1.REJECT
   # ══════════════════════════════════════════
-  - RULE-SET,BanAD,REJECT-DROP                                       # 广告拦截
-  - RULE-SET,BanEasyList,REJECT-DROP                                 # 广告拦截
-  - RULE-SET,BanEasyListChina,REJECT-DROP                            # 广告拦截
-  - RULE-SET,BanEasyPrivacy,REJECT-DROP                              # 广告拦截
-  - RULE-SET,BanProgramAD,REJECT-DROP                                # 应用净化
+  - RULE-SET,Reject,REJECT-DROP                                      # 广告 / 追踪拦截
+  - RULE-SET,Ads_AWAvenue,REJECT-DROP                                # 国内 App 广告净化
 
   # ══════════════════════════════════════════
   # 2.DIRECT / 私有网络
   # ══════════════════════════════════════════
-  - RULE-SET,LocalAreaNetwork,DIRECT                                 # 局域网 / 私有网络
+  - RULE-SET,Lan,DIRECT                                              # 局域网 / 私有网络
+  - RULE-SET,Direct,DIRECT                                           # 应直连的杂项
   - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve                             # RFC1918 A 类私网
   - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve                          # 运营商级 NAT
   - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve                            # 本机回环
@@ -288,55 +278,52 @@ rules:
   # ══════════════════════════════════════════
   # 4.DIRECT / CN
   # ══════════════════════════════════════════
-  - RULE-SET,UnBan,DIRECT                                            # 连通性检测
-  - RULE-SET,GoogleCN,CN                                             # Google 国内直连
-  - RULE-SET,SteamCN,CN                                              # Steam 国内节点
-  - RULE-SET,NetEaseMusic,CN                                         # 网易云音乐
-  - RULE-SET,Wechat,CN                                               # 微信 / 微信支付
-  - RULE-SET,Tencent,CN                                              # 腾讯系服务
-  - RULE-SET,HuaWei,CN                                               # 华为服务
-  - RULE-SET,ChinaMedia,CN                                           # 国内媒体
+  - RULE-SET,WeChat,CN                                               # 微信 / 微信支付
+  - RULE-SET,Bilibili,CN                                             # B 站
+  - RULE-SET,AppleCN,CN                                              # Apple 中国区服务
+  - RULE-SET,OneDrive,CN                                             # OneDrive
+  - RULE-SET,DownloadCDN_CN,CN                                       # 国内下载 CDN
   - RULE-SET,ChinaDomain,CN                                          # 中国域名
-  - RULE-SET,ChinaCompanyIp,CN,no-resolve                            # 中国公司 IP
-  - RULE-SET,ChinaIp,CN,no-resolve                                   # 中国 IP
-  - RULE-SET,Download,CN                                             # 下载站点
+  - RULE-SET,ChinaASN,CN,no-resolve                                  # 中国运营商 ASN
+  - RULE-SET,ChinaIP,CN,no-resolve                                   # 中国 IP
 
   # ══════════════════════════════════════════
   # 5.Proxy
   # ══════════════════════════════════════════
-  - RULE-SET,OpenAi,Proxy                                            # OpenAI
-  - RULE-SET,AI-MIX,Proxy                                            # AI 综合
+  - RULE-SET,AI,Proxy                                                # AI 综合
+  - RULE-SET,OpenAI,Proxy                                            # OpenAI
   - RULE-SET,Telegram,Proxy                                          # Telegram
-  - RULE-SET,GitHub,Proxy                                            # GitHub
-  - RULE-SET,Discord,Proxy                                           # Discord
-  - RULE-SET,TikTok,Proxy                                            # TikTok
   - RULE-SET,Twitter,Proxy                                           # X / Twitter
   - RULE-SET,Facebook,Proxy                                          # Facebook / Meta
+  - RULE-SET,Instagram,Proxy                                         # Instagram
+  - RULE-SET,TikTok,Proxy                                            # TikTok
+  - RULE-SET,Reddit,Proxy                                            # Reddit
+  - RULE-SET,Google,Proxy                                            # Google
+  - RULE-SET,Github,Proxy                                            # GitHub
+  - RULE-SET,Microsoft,Proxy                                         # Microsoft
   - RULE-SET,YouTube,Proxy                                           # YouTube
-  - RULE-SET,ProxyLite,Proxy                                         # 精简代理列表
-  - RULE-SET,GFW,Proxy                                               # GFW 代理兜底
-
-  # ── Google / Microsoft / Apple ──
-  - RULE-SET,GoogleFCM,Proxy                                         # Google FCM
-  - RULE-SET,Bing,CN                                                 # Bing
-  - RULE-SET,OneDrive,CN                                             # OneDrive
-  - RULE-SET,Microsoft,CN                                            # Microsoft 全家桶
-  - RULE-SET,Apple,CN                                                # Apple 全家桶
-
-  # ── 游戏 / 媒体 ──
-  - RULE-SET,Epic,CN                                                 # Epic Games
-  - RULE-SET,Origin,CN                                               # EA / Origin
-  - RULE-SET,Sony,CN                                                 # PlayStation
-  - RULE-SET,Steam,CN                                                # Steam
-  - RULE-SET,Nintendo,CN                                             # Nintendo
-  - RULE-SET,TapTap,CN                                               # TapTap
   - RULE-SET,Netflix,Proxy                                           # Netflix
+  - RULE-SET,Disney,Proxy                                            # Disney+
+  - RULE-SET,HBO,Proxy                                               # HBO Max
+  - RULE-SET,PrimeVideo,Proxy                                        # Prime Video
+  - RULE-SET,Emby,Proxy                                              # Emby
   - RULE-SET,Spotify,Proxy                                           # Spotify
   - RULE-SET,Bahamut,Proxy                                           # 巴哈姆特
-  - RULE-SET,BilibiliHMT,CN                                          # B 站港澳台
-  - RULE-SET,Bilibili,CN                                             # B 站主域名
-  - RULE-SET,ProxyMedia,Proxy                                        # 海外媒体
-  - RULE-SET,Xbox,Proxy                                              # Xbox / Microsoft Gaming
+  - RULE-SET,Steam,Proxy                                             # Steam
+  - RULE-SET,Epic,Proxy                                              # Epic Games
+  - RULE-SET,EA,Proxy                                                # EA / Origin
+  - RULE-SET,Blizzard,Proxy                                          # 暴雪
+  - RULE-SET,Nintendo,Proxy                                          # Nintendo
+  - RULE-SET,Xbox,Proxy                                              # Xbox
+  - RULE-SET,UBI,Proxy                                               # Ubisoft / Uplay
+  - RULE-SET,Game,Proxy                                              # 其他游戏平台
+  - RULE-SET,Crypto,Proxy                                            # 加密货币 / 交易所
+  - RULE-SET,TronLink,Proxy                                          # TronLink 钱包
+  - RULE-SET,PayPal,Proxy                                            # PayPal
+  - RULE-SET,Cloudflare,Proxy                                        # Cloudflare
+  - RULE-SET,DownloadCDN_Global,Proxy                                # 海外下载 CDN
+  - RULE-SET,AppleServers,Proxy                                      # Apple 需代理的服务器
+  - RULE-SET,ProxyAll,Proxy                                          # 代理兜底大列表
 
   # ── 兜底 ──
   - GEOIP,CN,CN                                                      # 中国 IP 兜底
