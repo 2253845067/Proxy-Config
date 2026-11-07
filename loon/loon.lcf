@@ -19,8 +19,12 @@
 # IPv6 支持
 ip-mode = dual
 ipv6-vif = auto
+# 以下域名不走 Fake IP（Apple 推送、热点与局域网发现依赖真实 IP）
+real-ip = *.apple.com,*.icloud.com
 # DNS 服务器：仅保留加密 DNS，避免系统 DNS 或明文 DNS 泄露查询域名
 doh-server = https://dns.alidns.com/dns-query,https://doh.pub/dns-query,https://cloudflare-dns.com/dns-query
+# 劫持发往任意服务器 53 端口的明文 DNS 交给 Loon，防止应用绕过加密 DNS
+hijack-dns = *:53
 # SNI辅助规则匹配
 sni-sniffing = true
 # UDP相关
@@ -43,13 +47,13 @@ disconnect-on-policy-change = false
 # 代理测速 URL
 internet-test-url = http://connectivitycheck.platform.hicloud.com/generate_204
 proxy-test-url = https://www.gstatic.com/generate_204
-# 解析器
-resource-parser = https://gh-proxy.com/https://raw.githubusercontent.com/sub-store-org/Sub-Store/release/sub-store-parser.loon.min.js
-# 数据库链接
-geoip-url = https://geodata.kelee.one/Country-Masaiki.mmdb
-ipasn-url = https://geodata.kelee.one/GeoLite2-ASN-P3TERX.mmdb
+# 解析器（跟随 Sub-Store 最新 release）
+resource-parser = https://gh-proxy.com/https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store-parser.loon.min.js
+# 数据库：默认使用 Loon 内置的 GeoLite2，不指定第三方精简库；如需自定义可解除下面注释
+# geoip-url = https://gitlab.com/Loon0x00/loon_data/-/raw/main/geo/GeoLite2-Country.mmdb?inline=false
+# ipasn-url = https://gitlab.com/Loon0x00/loon_data/-/raw/main/geo/GeoLite2-ASN.mmdb?inline=false
 # 跳过某个域名或者 IP 段，这些目标主机将不会由 Loon Proxy 处理。
-skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local,e.crashlynatics.com
+skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local
 # 绕过路由
 bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/4,255.255.255.255/32
 
@@ -58,12 +62,12 @@ bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,1
 [Remote Proxy]
 
 [Remote Filter]
-AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$"
+AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$"
 
 [Proxy Group]
 # ── Proxy ──
 Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
-Auto = url-test,AllNodes,interval = 300,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
+Auto = url-test,AllNodes,interval = 600,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
 # ── CN ──
 CN = select,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
@@ -73,6 +77,13 @@ CN = select,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubuserc
 场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
 
 [Rule]
+# ── 强制走 CN ──
+DOMAIN-SUFFIX,report-online.sh.wxgateway.com,CN
+DOMAIN-SUFFIX,diancan.xibeilangsaoma.com,CN
+
+# ── 掐断 QUIC，让浏览器回落到 TCP（与 mihomo 配置一致）──
+AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT
+
 # 仅对已有 IP 地址做 GEOIP 判断，避免为未知域名额外发起系统 DNS 查询
 GEOIP,CN,CN,no-resolve
 FINAL,场景分流
@@ -125,7 +136,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list, policy=CN, tag=Epic, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Origin.list, policy=CN, tag=Origin, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list, policy=CN, tag=Sony, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list, policy=CN, tag=Steam, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list, policy=场景分流, tag=Steam, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list, policy=CN, tag=Nintendo, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TapTap.list, policy=CN, tag=TapTap, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list, policy=场景分流, tag=Netflix, enabled=true
@@ -138,8 +149,8 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 
 [Host]
 # 每个透明代理路由器 WiFi 一行，IP 填各自路由器管理 IP
-ssid: WiFi1=server: 10.0.0.1
-ssid: WiFi2=server: 10.0.0.2
+ssid: WiFi1 = server: 10.0.0.1
+ssid: WiFi2 = server: 10.0.0.2
 
 [Rewrite]
 
@@ -148,12 +159,14 @@ ssid: WiFi2=server: 10.0.0.2
 [Plugin]
 # ── 新增 ──
 https://kelee.one/Tool/Loon/Lpx/TelegramRedirect.lpx, enabled=true
-https://kelee.one/Tool/Loon/Lpx/AppleWeatherEnhancer.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/AppleWeatherEnhancer.lpx, enabled=false
 https://kelee.one/Tool/Loon/Lpx/12306_remove_ads.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/DragonRead_remove_ads.lpx, enabled=true
+https://gh-proxy.com/https://raw.githubusercontent.com/taiji951906413/fanqie-loon/refs/heads/main/fanqie.plugin, tag=过滤番茄三系广告, enabled=true
 # ── 原有 ──
-https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=true, enabled=true
-https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=true, enabled=true
+# pin=true 在 Loon 里的含义是「固定当前插件版本、不跟随上游更新」，防 DNS 泄漏类插件需要持续更新，故设为 false
+https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=false, enabled=true
+https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=false, enabled=true
 https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Node_detection_tool.lpx, enabled=true
@@ -163,7 +176,9 @@ https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=场景分流, enabled=true
 
 [Mitm]
-hostname=
+# 番茄插件（fanqie.plugin）里把 MITM 域名写成了 "%APPEND% ..."，Loon 不认这个前缀，
+# 这里显式声明一遍，保证插件里的信息流广告改写脚本能真正生效
+hostname = *.fqnovel.com,*.snssdk.com,*.zijieapi.com
 ca-p12=
 ca-passphrase=
 skip-server-cert-verify=false
