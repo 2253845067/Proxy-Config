@@ -19,10 +19,13 @@
 # IPv6 支持
 ip-mode = dual
 ipv6-vif = auto
-# 以下域名不走 Fake IP（Apple 推送、热点与局域网发现依赖真实 IP）
-real-ip = *.apple.com,*.icloud.com
+# 以下域名不走 Fake IP（Apple 推送、热点与局域网域名依赖真实 IP）
+# *.lan / *.local / *.arpa 必须保留真实 IP，否则本地设备（路由器、NAS、打印机）域名会被解析成 Fake IP
+real-ip = *.apple.com,*.icloud.com,*.lan,*.local,*.arpa
 # DNS 服务器：仅保留加密 DNS，避免系统 DNS 或明文 DNS 泄露查询域名
-doh-server = https://dns.alidns.com/dns-query,https://doh.pub/dns-query,https://cloudflare-dns.com/dns-query
+# 全部使用 IP 形式的 DoH：DoH 主机名本身也要先解析，用域名就得先依赖一条明文 DNS 做 bootstrap；
+# 同时不使用 cloudflare-dns.com 这类国内不可达的境外 DoH，避免解析拖慢或失败
+doh-server = https://223.5.5.5/dns-query,https://1.12.12.12/dns-query,https://223.6.6.6/dns-query
 # 劫持发往任意服务器 53 端口的明文 DNS 交给 Loon，防止应用绕过加密 DNS
 hijack-dns = *:53
 # SNI辅助规则匹配
@@ -70,7 +73,7 @@ Proxy = select,Auto,AllNodes,DIRECT,REJECT,img-url = https://gh-proxy.com/https:
 Auto = url-test,AllNodes,interval = 600,tolerance = 50,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png
 
 # ── CN ──
-CN = select,DIRECT,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
+CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png
 
 # ── WiFi 分流（透明代理路由器环境自动直连）──
 # 有多个透明代理路由器 WiFi 时，继续追加 "SSID"=DIRECT；普通 WiFi 无需列出（自动走 default）
@@ -149,8 +152,9 @@ https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Cl
 
 [Host]
 # 每个透明代理路由器 WiFi 一行，IP 填各自路由器管理 IP
-ssid: WiFi1 = server: 10.0.0.1
-ssid: WiFi2 = server: 10.0.0.2
+# 官方写法是 ssid:名称 = server:IP，冒号后不留空格，否则 SSID 名可能带前导空格导致匹配不到
+ssid:WiFi1 = server:10.0.0.1
+ssid:WiFi2 = server:10.0.0.2
 
 [Rewrite]
 
@@ -164,9 +168,9 @@ https://kelee.one/Tool/Loon/Lpx/12306_remove_ads.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/DragonRead_remove_ads.lpx, enabled=true
 https://gh-proxy.com/https://raw.githubusercontent.com/taiji951906413/fanqie-loon/refs/heads/main/fanqie.plugin, tag=过滤番茄三系广告, enabled=true
 # ── 原有 ──
-# pin=true 在 Loon 里的含义是「固定当前插件版本、不跟随上游更新」，防 DNS 泄漏类插件需要持续更新，故设为 false
-https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=false, enabled=true
-https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=false, enabled=true
+# pin=true 表示把插件固定在列表前部、不参与自动重排（官方示例配置用它保护核心防泄漏插件），与「是否跟随上游更新」无关
+https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=true, enabled=true
+https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=true, enabled=true
 https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Node_detection_tool.lpx, enabled=true

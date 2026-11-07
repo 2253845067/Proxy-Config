@@ -2,7 +2,7 @@
 #
 # 用途：
 #   - 通过 README 里的一键导入链接直接导入 Egern 使用。
-#   - 导入后把你的机场订阅 URL 添加到“机场订阅”外部策略组，其他策略组会自动复用这些节点。
+#   - 导入后把你的机场订阅 URL 添加到“机场订阅”策略组，其他策略组会自动复用这些节点。
 #
 # 策略组：
 #   - 精简分组：Proxy / Auto / CN。
@@ -28,7 +28,6 @@ geoip_db_url: https://github.com/xream/geoip/releases/latest/download/ipinfo.cou
 asn_db_url: https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb
 proxy_latency_test_url: https://www.gstatic.com/generate_204
 direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204
-udp_latency_test_url: google.com@8.8.8.8
 compat_route: true
 include_all_networks: false
 include_apns: false
@@ -55,7 +54,7 @@ real_ip_domains:
 dns:
   bootstrap:
     - 223.5.5.5
-    - 1.1.1.1
+    - 119.29.29.29
   upstreams:
     domestic:
       - https://223.5.5.5/dns-query
@@ -63,9 +62,11 @@ dns:
     overseas:
       - https://8.8.8.8/dns-query
       - https://1.1.1.1/dns-query
+  # 官方语义：proxy_nameservers 的连接一律强制直连（且绕过 forward 规则），
+  # 因此必须填国内可达的 DoH；填 8.8.8.8 / 1.1.1.1 会在国内网络下解析失败，导致域名形式的节点全部不可用
   proxy_nameservers:
-    - https://8.8.8.8/dns-query
-    - https://1.1.1.1/dns-query
+    - https://223.5.5.5/dns-query
+    - https://1.12.12.12/dns-query
   forward:
     - proxy_rule_set:
         match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"
@@ -84,9 +85,9 @@ dns:
 
 policy_groups:
   # ── Subscription ──
-  - external:
+  # 官方推荐写法：直接在 select 上写 urls（external 是等价的旧式写法，长期保留但不建议新配置使用）
+  - select:
       name: 机场订阅
-      type: select
       urls:
         - "这里填入你的机场订阅 URL"
       block_quic: true
@@ -223,11 +224,7 @@ rules:
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIp.list"
       policy: CN
       update_interval: 86400
-  - rule_set:
-      name: ChinaIpV6
-      match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaIpV6.list"
-      policy: CN
-      update_interval: 86400
+  # ipv6: false 时不启用 ChinaIpV6（IPv6 目标不会产生流量，规则只会白占内存）
   - rule_set:
       name: Download
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Download.list"

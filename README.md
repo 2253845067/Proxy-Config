@@ -28,9 +28,9 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **内核要求**：核心规则集（`ChinaDomain` / `ChinaIp` / `GFW`）使用 MetaCubeX 的 mrs 二进制格式，需要 mihomo 1.18+；Mihomo Party、Clash Party、Nikki 自带内核均满足。若使用更旧的内核，把这三项的 `format: mrs` 去掉、URL 换回 ACL4SSR 的 `.list` 地址即可。
 >
-> **DNS 说明**：fake-ip 过滤为 `rule` 模式，只对明确标记 `real-ip` 的域名下发真实 IP；海外域名走 `#Proxy` 的 Cloudflare/Google DoH，国内域名与节点域名走国内 DoH（223.5.5.5 / doh.pub）。`use-system-hosts: false` 会忽略本机 hosts，若依赖 hosts 里的自定义解析，请改写进配置的 `hosts:` 段。
+> **DNS 说明**：fake-ip 过滤为 `rule` 模式，只对明确标记 `real-ip` 的域名下发真实 IP；海外域名走 `#Proxy` 的 Cloudflare/Google DoH，国内域名与节点域名走国内 DoH（223.5.5.5 / doh.pub）。`use-system-hosts: false` 会忽略本机 hosts，若依赖 hosts 里的自定义解析，请改写进配置的 `hosts:` 段。内置 DNS 监听 `0.0.0.0:1053`（内核默认端口）：53 端口由 TUN 的 `dns-hijack` 接管，因此既不占 53（避免与 Windows ICS/Docker 冲突），也不会因为 `allow-lan: true` 在局域网暴露一个开放解析器。
 >
-> **QUIC 拦截**：规则里有 `AND,((NETWORK,udp),(DST-PORT,443)),REJECT`，让浏览器回落到 TCP。若某些应用必须用 HTTP/3，注释掉这一条即可。
+> **QUIC 拦截**：规则里有 `AND,((NETWORK,udp),(DST-PORT,443)),REJECT`，让浏览器回落到 TCP。既然 QUIC 在规则层已被整体拒绝，嗅探段就不再声明 `QUIC` 类型，避免留下永远不执行的分支。若某些应用必须用 HTTP/3，注释掉这一条即可（同时可按需加回 `sniffer.sniff.QUIC`）。
 
 ## Loon 使用方法
 
@@ -45,17 +45,19 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 9. 打开 Loon 的开关后，点击 [一键更新所有外部资源](https://www.nsloon.com/openloon/update?sub=all)。
 10. 待更新完毕之后，回到仪表界面重新打开一次 Loon 的开关即可。
 
-> **DNS 防泄漏**：配置使用 DoH，不再声明系统 DNS 或明文 DNS，并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Loon 处理。Loon 的官方文档说明，加密 DNS 查询失败时仍可能回落到普通 DNS；若要完全禁止回落，请在 Loon 的 DNS 服务器设置中关闭“加密 DNS 失败时使用普通 DNS”。
+> **DNS 防泄漏**：配置使用 DoH，不再声明系统 DNS 或明文 DNS，并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Loon 处理。三条 DoH 全部写成 IP 形式（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`）：DoH 主机名本身也要先解析，用域名就等于先依赖一条明文 DNS 做 bootstrap；同时不使用 `cloudflare-dns.com` 这类国内不可达的境外 DoH。Loon 的官方文档说明，加密 DNS 查询失败时仍可能回落到普通 DNS；若要完全禁止回落，请在 Loon 的 DNS 服务器设置中关闭“加密 DNS 失败时使用普通 DNS”。
+>
+> **Fake IP 例外**：`real-ip` 除 Apple 推送域名外，还包含 `*.lan` / `*.local` / `*.arpa`，否则路由器、NAS、打印机等局域网域名会被解析成 Fake IP（其余三端模板都做了同样的排除）。
 >
 > **QUIC 拦截**：本地规则里有 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT`，掐掉 QUIC 让浏览器回落 TCP（与 Mihomo 模板保持一致）。若某些应用必须用 HTTP/3，注释掉这一条即可。
 >
-> **插件与 MITM**：插件自带的 MITM 域名会合并进配置；番茄系去广告插件的域名已在 `[Mitm]` 里显式声明，禁用该插件后记得把这行一起删掉。`ca-p12` / `ca-passphrase` 留空由 Loon 管理证书，本仓库是公开仓库，切勿填入自己的证书内容。
+> **插件与 MITM**：插件自带的 MITM 域名会合并进配置；番茄系去广告插件的域名已在 `[Mitm]` 里显式声明，禁用该插件后记得把这行一起删掉。插件行里的 `pin=true` 只表示“把插件固定在列表前部、不参与自动重排”（官方示例配置用它保护核心防泄漏插件），与是否跟随上游更新无关。`ca-p12` / `ca-passphrase` 留空由 Loon 管理证书，本仓库是公开仓库，切勿填入自己的证书内容。
 
 > **WiFi 分流（可选）**：若你使用透明代理路由器，把配置中的 `WiFi1` / `WiFi2` 替换为路由器 WiFi 名称、`10.0.0.1` / `10.0.0.2` 替换为对应路由器管理 IP。连上这些 WiFi 时 Loon 自动走直连（由路由器代理翻墙），其他网络由 Loon 自动分流，避免双重代理。
 >
 > 有多个透明代理路由器 WiFi 时：
 > - `[Proxy Group]` 的 `场景分流` 组里继续追加 `"SSID"=DIRECT`（如 `"WiFi3"=DIRECT`）；
-> - `[Host]` 里每个 WiFi 单独一行 `ssid: SSID=server: 路由器IP`；
+> - `[Host]` 里每个 WiFi 单独一行 `ssid:SSID = server:路由器IP`（`ssid:` 与 `server:` 后都要顶格写，不能留空格，否则 SSID 名会带前导空格匹配不到）；
 > - 普通 WiFi（没有路由器翻墙）不用列出，自动走 default 的 Proxy/Auto。
 
 ## Egern 使用方法
@@ -68,9 +70,11 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 ```
 
 3. 导入完成后，切换并使用 `egern` 配置。
-4. 打开 [工具] -> [代理] -> `机场订阅`，填入你的机场订阅并保存。
+4. 打开 [策略组] -> `机场订阅`，填入你的机场订阅 URL 并保存（该组已从官方归为旧式的 `external` 写法迁移为 `select + urls`，两者等价）。
 5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
 6. 回到仪表界面打开 Egern 开关即可。
+
+> **DNS 注意**：`dns.proxy_nameservers` 的连接按官方语义是**强制直连**、且会绕过 `forward` 规则，所以必须填国内可达的 DoH（当前为 223.5.5.5 / 1.12.12.12）。若填 `8.8.8.8`、`1.1.1.1`，在国内网络下节点域名解析会失败，所有以域名下发的节点会直接不可用。
 
 ## sing-box 使用方法
 
@@ -85,6 +89,12 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 配置使用 reF1nd 的并发 DNS 组、Provider HTTP 客户端和 `resolve.match_only`：先匹配域名规则，解析后再匹配 IP 规则，同时保留原始域名用于实际连接。
 
 TUN 入站已启用自动路由和严格路由（`auto_route` / `strict_route`），启动客户端时请授予 TUN/管理员权限；否则系统流量不会被接管。
+
+QUIC 拦截与其余三端保持一致：规则里有一条 `{"network":"udp","port":443,"action":"reject"}`（位于私网直连规则之后），让浏览器回落到 TCP。不需要可整条删掉。
+
+控制面板已启用：`clash_api` 监听 `127.0.0.1:9090`，面板下载到 `external_ui: ui`，启动后打开 `http://127.0.0.1:9090/ui` 即可。注意 sing-box 的 `external_ui_download_url` 只在 `external_ui` 指定的目录**存在且为空**时才会触发下载，两者必须成对出现，只写下载地址不会有任何效果。
+
+`CN` 策略组只有 `direct` / `Proxy` 两个选项：官方已弃用 `block` 出站，REJECT 需通过规则 `action: reject` 实现，因此不再往组里塞 REJECT（这点与 Mihomo / Egern 的 `CN` 组略有不同）。
 
 规则集使用 sing-box 原生 `.srs` 文件，并在首次启动时经 `ghfast.top` 从 SagerNet 仓库下载。导入前可用对应的 reF1nd 核心检查配置：
 
