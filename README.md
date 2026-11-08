@@ -116,7 +116,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **DNS 防泄漏**：配置使用 DoH，不再声明系统 DNS 或明文 DNS，并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Loon 处理。三条 DoH 全部写成 IP 形式（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`）：DoH 主机名本身也要先解析，用域名就等于先依赖一条明文 DNS 做 bootstrap；同时不使用 `cloudflare-dns.com` 这类国内不可达的境外 DoH。Loon 的官方文档说明，加密 DNS 查询失败时仍可能回落到普通 DNS；若要完全禁止回落，请在 Loon 的 DNS 服务器设置中关闭“加密 DNS 失败时使用普通 DNS”。
 
-> **其他关键项**：`udp-fallback-mode = REJECT`（节点不支持 UDP 时直接拒绝，而不是回落到直连，否则 UDP 会绕开代理）、`disable-stun = true`（直连时丢弃 STUN）、`dns-reject-mode = LoopbackIP` + `domain-reject-mode = DNS`（拦截回环 IP，避免部分 App 立刻重试）、`allow-wifi-access = false`（不向局域网共享代理）、`ip-mode = dual` + `ipv6-vif = auto`。`skip-proxy` / `bypass-tun` 覆盖全部 RFC1918 与保留网段，所以局域网设备流量根本不进 Loon。
+> **其他关键项**：`udp-fallback-mode = REJECT`（节点不支持 UDP 时直接拒绝，而不是回落到直连，否则 UDP 会绕开代理）、`disable-stun = true`（直连时丢弃 STUN）、`dns-reject-mode = LOOPBACKIP` + `domain-reject-mode = DNS`（拦截回环 IP，避免部分 App 立刻重试；官方取值是大写 `LOOPBACKIP` / `NOANSWER` / `NXDOMAIN`）、`allow-wifi-access = false`（不向局域网共享代理）、`ip-mode = dual` + `ipv6-vif = auto`。`skip-proxy` / `bypass-tun` 覆盖全部 RFC1918 与保留网段，所以局域网设备流量根本不进 Loon。
 
 > **规则求值顺序**：Loon 是「本地 `[Rule]` → `[Remote Rule]`」，全部未命中时才回本地执行 `FINAL`；本地规则优先于订阅规则。所以 `[Rule]` 里的 APNs 段和 QUIC 拦截能盖住订阅里的同名判断，`FINAL,场景分流` 放在 `[Rule]` 末尾是正确位置——**不要**挪到 `[Remote Rule]` 后面，那样会让远程规则提前终止。
 
@@ -161,7 +161,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 > **ASN / GEO 库**：`ChinaASN` 规则依赖 `asn_db_url`（P3TERX 的 GeoLite2-ASN），`GEOIP` 兜底依赖 `geoip_db_url`（xream 的 ipinfo.country.mmdb）。这两项下载失败时不会报错，只是 ASN / GEOIP 规则静默失效，表现为部分国内 IP 被误走代理；排查分流异常时先确认这两个库能下载。
 
-> **APNs**：`include_apns: true` 让蜂窝网络下的 APNs 流量也进隧道，才能命中 `AppleServers` 规则；仍不生效再打开 `include_all_networks`（会接管全部网络流量）。
+> **APNs 与网络接管范围**：官方语义里 `include_apns` / `include_cellular_services` / `include_local_networks` 都是主开关 `include_all_networks` 的**附属项**，主开关为 `false` 时它们不生效。当前配置是主开关 `true` + `include_apns: true` + 另外两项 `false`：蜂窝下的 APNs 因此能进隧道、命中 `AppleServers` 规则，而 VoLTE/IMS 与局域网流量仍不被接管（`bypass_tunnel_proxy` 再兜一层）。代价是除默认网络外还接管了"全部网络"这一档，遇到热点共享或投屏异常时优先怀疑这里。
 
 ## sing-box 使用方法
 

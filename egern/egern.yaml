@@ -29,10 +29,10 @@ asn_db_url: https://gh-proxy.com/https://github.com/P3TERX/GeoLite.mmdb/raw/down
 proxy_latency_test_url: https://www.gstatic.com/generate_204                                        # 代理节点测速地址
 direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204                 # 直连测速地址（必须国内可达）
 compat_route: true                          # 兼容路由，缓解与其他 VPN/TUN 应用的路由冲突
-include_all_networks: false                 # 只接管默认路由；打开后连内网/热点流量也进隧道
-include_apns: true                          # 接管 APNs 流量，蜂窝数据下推送才能命中 AppleServers 规则；若无效再打开 include_all_networks
-include_cellular_services: false            # 不接管运营商 VoLTE / IMS 等蜂窝服务通道，免得打电话出问题
-include_local_networks: false               # 不接管局域网流量，与下面 bypass_tunnel_proxy 配合
+include_all_networks: true                  # 主开关：打开后 APNs / 蜂窝服务 / 局域网三个附属开关才能生效（官方要求）；本项本身只接管默认网络流量
+include_apns: true                          # 接管 APNs，蜂窝数据下推送才能命中 AppleServers 规则（依赖上面的主开关）
+include_cellular_services: false            # 不接管 VoLTE/IMS，避免影响通话
+include_local_networks: false               # 不接管局域网流量，配合 bypass_tunnel_proxy
 bypass_tunnel_proxy:                        # 这些目标不进隧道，直接由系统发出
   - "*.local"
   - "*.lan"

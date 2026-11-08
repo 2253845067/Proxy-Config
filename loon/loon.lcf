@@ -34,8 +34,8 @@ sni-sniffing = true
 # UDP相关
 disable-stun = true
 udp-fallback-mode = REJECT
-# 域名拦截行为
-dns-reject-mode = LoopbackIP
+# 域名拦截行为（官方取值为大写：LOOPBACKIP / NOANSWER / NXDOMAIN；domain-reject-mode 取 DNS / Request）
+dns-reject-mode = LOOPBACKIP
 domain-reject-mode = DNS
 # Wi-Fi 访问：关闭表示不把代理共享给局域网其他设备；打开等于在本机开一个对外开放的代理端口
 allow-wifi-access = false
