@@ -82,12 +82,16 @@ CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githu
 
 # ── WiFi 分流（透明代理路由器环境自动直连）──
 # 有多个透明代理路由器 WiFi 时，继续追加 "SSID"=DIRECT；普通 WiFi 无需列出（自动走 default）
-场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
+场景分流 = ssid, default=Proxy, cellular=Proxy, "YUQI"=DIRECT, "WiFi2"=DIRECT, img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
 
 [Rule]
 # ── 强制走 CN ──
 DOMAIN-SUFFIX,report-online.sh.wxgateway.com,CN
 DOMAIN-SUFFIX,diancan.xibeilangsaoma.com,CN
+# Apple 天气：AppleCN 规则集只列了 weather-data / weather-map / weatherkit，没有 apple.com 通配，
+# 不补这条 weather.apple.com 会落到 FINAL 走代理；weather-analytics-events 交给 WeatherKit 插件 DROP，
+# 这里不要写 CN，否则本地规则会盖掉插件的 REJECT-DROP。
+DOMAIN-SUFFIX,weather.apple.com,CN
 
 # ── Apple 推送 / iMessage / FaceTime 走代理 ──
 # 用途：iMessage、FaceTime 激活或收发异常时，把 APNs 相关域名与网段从「Apple 全量直连」里单独拎出来走代理。
@@ -176,7 +180,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Loon/Rules/P
 [Host]
 # 每个透明代理路由器 WiFi 一行，IP 填各自路由器管理 IP
 # 官方写法是 ssid:名称 = server:IP，冒号后不留空格，否则 SSID 名可能带前导空格导致匹配不到
-ssid:WiFi1 = server:10.0.0.1
+ssid:YUQI = server:192.168.77.1
 ssid:WiFi2 = server:10.0.0.2
 
 [Rewrite]
@@ -186,31 +190,84 @@ ssid:WiFi2 = server:10.0.0.2
 # 本段留空：脚本运行由插件（BoxJs / Script-Hub / 去广告插件）提供，不在本地写死
 
 [Plugin]
-# ── 新增 ──
-https://kelee.one/Tool/Loon/Lpx/TelegramRedirect.lpx, enabled=true
-https://kelee.one/Tool/Loon/Lpx/AppleWeatherEnhancer.lpx, enabled=false
-https://kelee.one/Tool/Loon/Lpx/12306_remove_ads.lpx, enabled=true
-https://kelee.one/Tool/Loon/Lpx/DragonRead_remove_ads.lpx, enabled=true
-https://gh-proxy.com/https://raw.githubusercontent.com/taiji951906413/fanqie-loon/refs/heads/main/fanqie.plugin, tag=过滤番茄三系广告, enabled=true
-# ── 原有 ──
-# pin=true 表示把插件固定在列表前部、不参与自动重排（官方示例配置用它保护核心防泄漏插件），与「是否跟随上游更新」无关
+# 说明：插件会把自家域名合并进 [Mitm]，一次全开会扩大解密范围，首次「一键更新所有外部资源」也会变慢；
+#      某个 App 出现证书 / 网络异常时，先关掉它对应的插件再排查。
+#      行内 policy= 表示该插件的规则走哪个策略；pin=true 表示固定在列表前部、不参与自动重排。
+
+# ── 系统与基础（防泄漏 / 订阅 / 脚本）──
+# pin=true 保护这两个防泄漏插件不被自动重排走，它们挂了 DNS 泄露会悄悄回归
 https://kelee.one/Tool/Loon/Lpx/Block_HTTPDNS.lpx, pin=true, enabled=true
 https://kelee.one/Tool/Loon/Lpx/BlockAdvertisers.lpx, pin=true, enabled=true
-https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Prevent_DNS_Leaks.lpx, policy=场景分流, enabled=true
+https://kelee.one/Tool/Loon/Lpx/QuickSearch.lpx, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Node_detection_tool.lpx, enabled=true
-https://kelee.one/Tool/Loon/Lpx/TestFlightRegionUnlock.lpx, policy=DIRECT, enabled=false
 https://kelee.one/Tool/Loon/Lpx/BoxJs.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=场景分流, enabled=true
-# ── Apple 天气增强（iRingo:WeatherKit，两个版本二选一，不要同时启用）──
-# Rewrite 版：纯 URL 重写，把 weatherkit.apple.com 的 API 请求转到第三方中转 weatherkit.pages.dev，不需要 token。
-# 代价：天气请求（含坐标）会经过该第三方服务，且 pages.dev 需走代理才通；不想依赖别人就关掉它。
+
+# ── Apple / 天气 ──
+# 旧的天气增强，与下面的 iRingo 功能重叠，保持禁用
+https://kelee.one/Tool/Loon/Lpx/AppleWeatherEnhancer.lpx, enabled=false
+# iRingo 两个版本二选一，不要同时启用（都 MITM weatherkit.apple.com）
+# Rewrite 版：纯 URL 重写，把 API 请求转到第三方中转 weatherkit.pages.dev，不需要 token；
+#            代价是天气请求（含坐标）经第三方服务，且 pages.dev 需走代理才通
 https://gh-proxy.com/https://github.com/NSRingo/WeatherKit/raw/main/modules/iRingo.WeatherKit.Rewrite.lpx, enabled=true
-# 脚本版：在本地改写响应体，可接彩云 / 和风 / WAQI 数据源；需要在 BoxJs 或插件参数里填 token 才有最佳效果。
-# 脚本从 GitHub releases 拉取，需 GitHub 规则命中代理（本配置里 GitHub 走 场景分流）。
-# 该 release 资源走 gh-proxy 会返回 520，改用 ghfast.top（sing-box 那边的规则集也用这个镜像）
+# 脚本版：本地改写响应体，可接彩云 / 和风 / WAQI，需要 token 才有效果；脚本从 GitHub releases 拉，
+#        该 release 走 gh-proxy 返回 520，所以用 ghfast.top
 https://ghfast.top/https://github.com/NSRingo/WeatherKit/releases/latest/download/iRingo.WeatherKit.lpx, enabled=false
+
+# ── 微信 ──
+# 三个插件改写同一批响应，微信提示网络异常 / 证书错误时先关这三个
+https://kelee.one/Tool/Loon/Lpx/WexinMiniPrograms_Remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Weixin_external_links_unlock.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Weixin_Official_Accounts_remove_ads.lpx, enabled=true
+
+# ── 社交与社区 ──
+https://kelee.one/Tool/Loon/Lpx/TelegramRedirect.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/RedPaper_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Soul_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Tieba_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/CoolApk_remove_ads.lpx, enabled=true
+
+# ── 电商与生活服务 ──
+https://kelee.one/Tool/Loon/Lpx/Taobao_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/PinDuoDuo_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/JD_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/JDWaimai_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/JD_Price.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/FleaMarket_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/smzdm_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Cainiao_remove_ads.lpx, enabled=true
+
+# ── 出行 ──
+https://kelee.one/Tool/Loon/Lpx/Amap_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/DiDi_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Umetrip_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/12306_remove_ads.lpx, enabled=true
+
+# ── 影音 ──
+https://kelee.one/Tool/Loon/Lpx/NeteaseCloudMusic_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/SodaMusic_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/Bilibili_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/YouTube_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/YouTubeSubtitlesTranslation.lpx, enabled=true
+
+# ── 阅读 ──
+https://kelee.one/Tool/Loon/Lpx/ShuQiCenterReader_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/SevenCat_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/iReaderDejian_remove_ads.lpx, enabled=true
+# 番茄小说两套：默认用的是 fanqie.plugin；kelee 的 DragonRead 保留但禁用，避免两套改写同一批响应。
+# 想换回 kelee 那套就把这两条的 enabled 对调
+https://gh-proxy.com/https://raw.githubusercontent.com/taiji951906413/fanqie-loon/refs/heads/main/fanqie.plugin, tag=番茄三系去广告, enabled=true
+https://kelee.one/Tool/Loon/Lpx/DragonRead_remove_ads.lpx, enabled=false
+
+# ── 网盘 / 浏览器 / 搜索 ──
+https://kelee.one/Tool/Loon/Lpx/BaiduNetDisk_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/123NetWorkDisk_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/mobileClouds_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/QuarkBrowser_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/QuarkScanking_remove_ads.lpx, enabled=true
+https://kelee.one/Tool/Loon/Lpx/BaiduSearchWebpage_remove_ads.lpx, enabled=true
 
 [Mitm]
 # 番茄插件（fanqie.plugin）里把 MITM 域名写成了 "%APPEND% ..."，Loon 不认这个前缀，

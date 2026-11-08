@@ -130,7 +130,9 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **天气增强插件（iRingo:WeatherKit）**：提供 Rewrite 版和脚本版两个文件，**二选一，不要同时启用**（都会 MITM `weatherkit.apple.com`，同时开等于同一批请求被改两次）。当前启用的是 Rewrite 版，脚本版保持禁用：Rewrite 版把 `weatherkit.apple.com` 的 API 请求（含定位坐标）重写到第三方中转 `weatherkit.pages.dev`，该域名在 Cloudflare Pages 上、需走代理才通，且依赖别人的服务可用性；脚本版在本地改写响应体，配彩云 / 和风 / WAQI 的 token 才有最佳效果，脚本从 GitHub releases 拉取（该 release 走 `gh-proxy.com` 会返回 520，所以用的是 `ghfast.top`）。旧的 `AppleWeatherEnhancer.lpx` 是同类插件，保持禁用即可。
 
-> **WiFi 分流（可选）**：若你使用透明代理路由器，把配置中的 `WiFi1` / `WiFi2` 替换为路由器 WiFi 名称、`10.0.0.1` / `10.0.0.2` 替换为对应路由器管理 IP。连上这些 WiFi 时 Loon 自动走直连（由路由器代理翻墙），其他网络由 Loon 自动分流，避免双重代理。**不用透明代理路由器就把 `"WiFi1"=DIRECT` / `"WiFi2"=DIRECT` 和 `[Host]` 里对应两行一起删掉**，否则遇到同名 SSID（公共热点叫 `WiFi1` 这种）会被误判成直连。
+> **去广告插件**：`[Plugin]` 里按类别分了九组——系统与基础、Apple/天气、微信、社交与社区、电商与生活服务、出行、影音、阅读、网盘/浏览器/搜索，共 43 个 kelee 插件（总 46 条，含 3 个非 kelee）。它们都会把自家域名合并进 `[Mitm]`，一次全开等于解密范围大幅扩张，首次「一键更新所有外部资源」也会明显变慢；某个 App 出现证书错误或网络异常时，先关掉它对应的插件再排查。微信那三个（小程序去广告 / 外链解锁 / 公众号去广告）会改写同一批响应，微信报网络异常就先关它们。番茄小说两套去广告都保留在阅读组，默认启用 `fanqie.plugin`（番茄三系去广告），kelee 的 `DragonRead` 设为禁用——两套会改写同一批响应，同时开只会互相干扰；想换另一套就把这两条的 `enabled` 对调。
+
+> **WiFi 分流（可选）**：`场景分流` 已把 `YUQI`（透明代理路由器）配成直连，`[Host]` 里 `ssid:YUQI = server:192.168.77.1` 指定了它在连上该 WiFi 时用路由器自身解析。**换成别的路由器时，`YUQI` / `192.168.77.1` 两个值都要改；不用透明代理路由器就把 `"YUQI"=DIRECT` / `"WiFi2"=DIRECT` 和 `[Host]` 里对应两行一起删掉**，否则遇到同名 SSID（公共热点也叫这名）会被误判成直连。`WiFi2` 仍是占位名，没用第二个路由器就删掉。
 >
 > 有多个透明代理路由器 WiFi 时：
 > - `[Proxy Group]` 的 `场景分流` 组里继续追加 `"SSID"=DIRECT`（如 `"WiFi3"=DIRECT`）；
