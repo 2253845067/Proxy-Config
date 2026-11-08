@@ -77,7 +77,7 @@ CN = select,DIRECT,Proxy,REJECT,img-url = https://gh-proxy.com/https://raw.githu
 
 # ── WiFi 分流（透明代理路由器环境自动直连）──
 # 有多个透明代理路由器 WiFi 时，继续追加 "SSID"=DIRECT；普通 WiFi 无需列出（自动走 default）
-场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
+场景分流 = ssid, default=Proxy, cellular=Proxy, "WiFi1"=DIRECT, "WiFi2"=DIRECT, img-url = https://gh-proxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/SSID.png
 
 [Rule]
 # ── 强制走 CN ──
@@ -196,6 +196,14 @@ https://kelee.one/Tool/Loon/Lpx/TestFlightRegionUnlock.lpx, policy=DIRECT, enabl
 https://kelee.one/Tool/Loon/Lpx/BoxJs.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Sub-Store.lpx, policy=场景分流, enabled=true
 https://kelee.one/Tool/Loon/Lpx/Script-Hub.lpx, policy=场景分流, enabled=true
+# ── Apple 天气增强（iRingo:WeatherKit，两个版本二选一，不要同时启用）──
+# Rewrite 版：纯 URL 重写，把 weatherkit.apple.com 的 API 请求转到第三方中转 weatherkit.pages.dev，不需要 token。
+# 代价：天气请求（含坐标）会经过该第三方服务，且 pages.dev 需走代理才通；不想依赖别人就关掉它。
+https://gh-proxy.com/https://github.com/NSRingo/WeatherKit/raw/main/modules/iRingo.WeatherKit.Rewrite.lpx, enabled=true
+# 脚本版：在本地改写响应体，可接彩云 / 和风 / WAQI 数据源；需要在 BoxJs 或插件参数里填 token 才有最佳效果。
+# 脚本从 GitHub releases 拉取，需 GitHub 规则命中代理（本配置里 GitHub 走 场景分流）。
+# 该 release 资源走 gh-proxy 会返回 520，改用 ghfast.top（sing-box 那边的规则集也用这个镜像）
+https://ghfast.top/https://github.com/NSRingo/WeatherKit/releases/latest/download/iRingo.WeatherKit.lpx, enabled=false
 
 [Mitm]
 # 番茄插件（fanqie.plugin）里把 MITM 域名写成了 "%APPEND% ..."，Loon 不认这个前缀，
