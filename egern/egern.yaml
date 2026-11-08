@@ -4,15 +4,20 @@
 #   - 通过 README 里的一键导入链接直接导入 Egern 使用。
 #   - 导入后把你的机场订阅 URL 添加到“机场订阅”策略组，其他策略组会自动复用这些节点。
 #
-# 策略组：
-#   - 精简分组：Proxy / Auto / CN。
-#   - “机场订阅”作为 Egern 的订阅入口，AllNodes 只做隐藏节点汇总。
-#   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
+# 策略组（6 个）：
+#   - 场景：连上透明代理路由器的 WiFi 时整体 DIRECT，其余网络交给 Proxy；SSID 是占位名，导入后必须替换。
+#   - Proxy / Auto / CN：手动选择 / 自动测速 / 国内直连，三层命名与 mihomo、Loon 保持一致。
+#   - 机场订阅 / AllNodes：订阅入口与隐藏的节点汇总，不在首页显示。
+#   - 不为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
-# 规则：
-#   - 广告规则走 REJECT。
+# 规则（51 条，其中 46 个规则集，全部来自 Repcz/Tool 分支 X）：
+#   - 第一条是 stun 拒绝，防 WebRTC 泄漏真实 IP；故意用 REJECT 而非 NO-DROP，理由见 README。
+#   - 广告规则走 REJECT-NO-DROP，与 mihomo 的 REJECT-DROP 语义对齐。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；GFW 兜底与未命中流量走 Proxy。
+#   - 海外服务走 Proxy；未命中流量走 场景（在家直连 / 在外走 Proxy）。
+#
+# 模块（16 个，合计声明 31 个 MITM 域名）：
+#   - 分组与排障顺序写在下方 modules 段；证书由 Egern 自己管理，ca_p12 / ca_passphrase 必须留空。
 
 ---
 ipv6: false                                 # 关闭 IPv6 解析与出站，避免半开 IPv6 环境下大量连接超时
@@ -22,27 +27,30 @@ allow_external_connections: false           # 不把代理开放给局域网其�
 vif_only: true                              # 只用 VIF（TUN）接管流量，不改系统代理设置
 block_quic: true                            # 全局拦 UDP/443 让浏览器回落 TCP；要放行 HTTP/3 需连各策略组里的同名开关一起关
 hide_vpn_icon: false                        # 是否在状态栏隐藏 VPN 图标
+close_connections_on_policy_change: true    # 切策略时主动断开旧连接；否则长连接会继续走旧节点到自然断开，切完看不出效果
 hijack_dns:
   - "*"                                     # 劫持全部 DNS 查询进内置解析器，防止应用自带 DNS 绕过
 geoip_db_url: https://gh-proxy.com/https://github.com/xream/geoip/releases/latest/download/ipinfo.country.mmdb   # GEOIP 库：末条 geoip 兜底依赖它，下载失败会静默失效
 asn_db_url: https://gh-proxy.com/https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb             # ASN 库：ChinaASN 规则专用，缺了这条规则不报错但不生效
 proxy_latency_test_url: https://www.gstatic.com/generate_204                                        # 代理节点测速地址
 direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204                 # 直连测速地址（必须国内可达）
+public_ip_lookup_url: https://ipv4.ddnspod.com                                                      # 出口 IP 查询：强制 IPv4（本配置 ipv6: false），且该域名国内可达，CN/DIRECT 策略下不会超时
 compat_route: true                          # 兼容路由，缓解与其他 VPN/TUN 应用的路由冲突
 include_all_networks: true                  # 主开关：打开后 APNs / 蜂窝服务 / 局域网三个附属开关才能生效（官方要求）；本项本身只接管默认网络流量
 include_apns: true                          # 接管 APNs，蜂窝数据下推送才能命中 AppleServers 规则（依赖上面的主开关）
 include_cellular_services: false            # 不接管 VoLTE/IMS，避免影响通话
 include_local_networks: false               # 不接管局域网流量，配合 bypass_tunnel_proxy
-bypass_tunnel_proxy:                        # 这些目标不进隧道，直接由系统发出
+vif_excluded_routes:                        # 路由级排除：这些网段压根不进 VIF 路由表，只接受 CIDR
+  - "127.0.0.0/8"                           # 环回
+  - "169.254.0.0/16"                        # 链路本地
+  - "100.64.0.0/10"                         # CGNAT（Tailscale 等用这段）
+  - "10.0.0.0/8"                            # 私有网段
+  - "172.16.0.0/12"                         # 私有网段，Docker 的 172.17/172.18 也在这里
+  - "192.168.0.0/16"                        # 私有网段，路由器 192.168.10.1 在这里
+bypass_tunnel_proxy:                        # 目标级旁路：只放路由级表达不了的域名，CIDR 统一交给上面那段
   - "*.local"
   - "*.lan"
   - "localhost"
-  - "10.0.0.0/8"
-  - "100.64.0.0/10"
-  - "127.0.0.0/8"
-  - "169.254.0.0/16"
-  - "172.16.0.0/12"
-  - "192.168.0.0/16"
 real_ip_domains:                            # 永远返回真实 IP、不走 Fake IP 的域名（局域网域名与时间同步）
   - "*.lan"
   - "*.local"
@@ -95,6 +103,22 @@ policy_groups:
       filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
       update_interval: 86400
 
+  # ── 场景 ──
+  # 连上透明代理路由器的 WiFi 时全直连（路由器已经翻墙），其他网络才交给 Proxy，避免双重代理。
+  # WiFi1 / WiFi2 是占位名，必须换成路由器的真实 SSID；不确定就整组删掉、把 default 规则改回 policy: Proxy。
+  # 注意：SSID 是精确匹配，公共热点如果正好叫 WiFi1 会被误判成直连，所以不要留着占位名不填。
+  - conditional:
+      name: 场景
+      rules:
+        - ssid:
+            match: WiFi1
+            policy: DIRECT
+        - ssid:
+            match: WiFi2
+            policy: DIRECT
+      default_policy: Proxy
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png"
+
   # ── Proxy ──
   - select:
       name: Proxy
@@ -137,16 +161,28 @@ policy_groups:
 
 rules:
   # 全部来自 Repcz/Tool（分支 X）的 Egern 规则集，上游每日自动重建
+  # ── 协议级 ──
+  # 必须放第一条：STUN 不涉及域名/IP，放后面会被前面的 rule_set 抢走。
+  # 这里用 REJECT 而不是 REJECT-NO-DROP：WebRTC 需要快速失败才能及时回落到 TURN，
+  # 静默丢弃会让通话建立多等 5-10 秒。不拦 STUN 会把真实公网 IP 泄漏给网页。
+  - protocol:
+      name: stun
+      match: stun
+      policy: REJECT
+
   # ── REJECT ──
+  # 用 REJECT-NO-DROP（丢弃不回 RST）与 mihomo 的 REJECT-DROP 语义对齐：
+  # 回 RST 等于告诉广告 SDK“这里有拦截器”，会触发重试/切备用域名/上报特征。
+  # 代价是拦截表现为超时，个别 App 首屏可能慢 1-3 秒；疑似误杀时先查这两条规则的命中日志。
   - rule_set:
       name: Reject
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Reject.yaml"
-      policy: REJECT
+      policy: REJECT-NO-DROP
       update_interval: 86400
   - rule_set:
       name: Ads_AWAvenue
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Ads_AWAvenue.yaml"
-      policy: REJECT
+      policy: REJECT-NO-DROP
       update_interval: 86400
 
   # ── DIRECT ──
@@ -389,4 +425,158 @@ rules:
       policy: CN
       no_resolve: true                  # 只判断已有 IP 的连接，不为域名额外发起解析
   - default:
-      policy: Proxy                     # 前面全没命中 -> Proxy
+      policy: 场景                      # 前面全没命中 -> 场景（在家直连 / 在外走 Proxy）；删掉场景组时改回 Proxy
+
+# MITM 空段：提前占位，之后加 modules 只改 modules 段，不用同时改两处。
+# 现在没有域名列表也没有启用的 modules，因此不会解密任何流量。
+# ca_p12 / ca_passphrase 必须留空：本仓库是公开的，证书由 Egern 自己管理。
+mitm:
+  ca_p12:
+  ca_passphrase:
+
+# ══ 模块 / MITM ══
+# 共 16 个，全部 enabled: true。排障时按下面的分组整组注释，不要逐个乱试：
+#   基础设施 1：Script-Hub —— script.hub 这个假域名靠它在本机转换规则，
+#               关掉它，「开屏广告」和「高德去广告」两条（走 script.hub 中转）会一起失效
+#   第一波 5：开屏广告、B 站两件套、YouTube 净化、百度去广告
+#   第二波 5：百度地图、高德、夸克、夸克扫描王、网易云
+#   第三波 4：微信公众号、淘宝、拼多多、京东（京东同时把 Cookie 上报给第三方比价服务）
+#   其他 1：missav 网页净化
+#
+# MITM 域名由各模块自己声明、由客户端自动合并，所以上面的 mitm 段不写 hostname；但绝不能写 "*"。
+# 实测这批模块合计声明 31 个 MITM 域名，全部是具体域名，没有通配。
+# 证书固定（pinning）的 App（银行、12306、部分政务/游戏）被 MITM 后会直接没有任何网络，
+# 出现「某个 App 突然全断」时先禁用对应模块，而不是去改规则。
+# 首次启用会要求安装并信任根证书，装好之前所有模块都不生效。
+#
+# 注意：模块会自带 [Rule] 段并被合并进主规则，优先级高于 rules 段（多为 pre-matching），
+# 这是三条最容易造成误伤的，出问题先看这里：
+#   拼多多 → REJECT cdl-1/cdl-p2/cd-1.pddpic.com（图片 CDN）→ 商品图可能加载不出来
+#   淘宝   → REJECT ut.taobao.com / ossgw.alicdn.com / hudong.alicdn.com（埋点与 CDN）→ 个别图片/互动挂件异常
+#   微信   → REJECT SUFFIX wxs.qq.com → 小程序静态资源域，小程序白屏时第一个怀疑它
+# 其余注入规则都是纯广告/埋点域名（网易云 4 条、京东 1 条 jddebug、拼多多其余 pinduoduo 子域），风险低。
+modules:
+  # ── 基础设施 ──
+  - name: Script-Hub
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/Script-Hub-Org/Script-Hub/main/modules/script-hub.surge.sgmodule"
+    enabled: true
+
+  # ── 第一波 ──
+  - name: 开屏广告
+    url: "http://script.hub/file/_start_/https://ddgksf2013.top/rewrite/StartUpAds.conf/_end_/StartUpAds.sgmodule?type=qx-rewrite&n=%E5%A2%A8%E9%B1%BC%E5%8E%BB%E5%BC%80%E5%B1%8F2.0%E5%8E%BB%E5%B9%BF%E5%91%8A%40ddgksf2013+%E5%B7%B2%E6%8A%93%E5%8C%85400%E4%BD%99%E5%BA%94%E7%94%A8%E5%8E%BB%E5%BC%80%E5%B1%8F&headers=User-Agent:surge&del=true&jqEnabled=true&target=surge-module&category=ddgksf2013"
+    enabled: true
+
+  - name: B站去广告
+    url: "https://gh-proxy.com/https://github.com/BiliUniverse/ADBlock/releases/latest/download/BiliBili.ADBlock.sgmodule"
+    compat_arguments:
+      Feed.Activity: 'true'
+      Feed.Vertical: 'true'
+      LogLevel: OFF
+    enabled: true
+
+  - name: B站界面增强
+    url: "https://gh-proxy.com/https://github.com/Biliverse/Enhanced/releases/latest/download/Biliverse.Enhanced.plugin"
+    compat_arguments:
+      Home.Switch: 'true'
+      Home.Tab_default: '2037'
+      Home.Top_left: mine
+      Region.Switch: 'true'          # 番剧地区解锁；要纯界面改版就改 false
+      Mine.Switch: 'true'
+      Mine.iPad.Switch: 'true'
+      Storage: PersistentStore
+      LogLevel: WARN
+    enabled: true
+
+  - name: YouTube净化
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/IBL3ND/module/refs/heads/main/Egern-YouTube.yaml"
+    compat_arguments:
+      屏蔽Shorts按钮: 'true'
+      blockUpload: 'true'
+      blockShorts: 'true'
+      autoHd: 'true'
+      blockGames: 'true'
+      blockVerticalLive: 'true'
+      jumpAhead: 'true'
+      blockStore: 'true'
+      nativeDownload: 'true'
+    enabled: true
+
+  # 只覆盖 m.baidu.com / www.baidu.com 的搜索首页信息流，不含网盘与贴吧
+  - name: 百度网页去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/百度去广告.Ipx"
+    enabled: true
+
+  # ── 第二波 ──
+  - name: 百度地图去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/百度地图.module"
+    enabled: true
+
+  - name: 高德去广告
+    url: "http://script.hub/file/_start_/https://raw.githubusercontent.com/ddgksf2013/Rewrite/master/AdBlock/AmapAds.conf/_end_/AmapAds.sgmodule?type=qx-rewrite&n=%E9%AB%98%E5%BE%B7%E5%9C%B0%E5%9B%BE%E5%8E%BB%E5%B9%BF%E5%91%8A%40ddgksf2013+%E5%BA%94%E7%94%A8%E5%87%80%E5%8C%96&headers=User-Agent:surge&del=true&jqEnabled=true&target=surge-module&category=ddgksf2013"
+    enabled: true
+
+  - name: 夸克去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/夸克去广告.beta.sgmodule"
+    enabled: true
+
+  - name: 夸克扫描王去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/夸克扫描王去广告.beta.sgmodule"
+    enabled: true
+
+  # PR* 一组开关是作者未公开含义的附加项（B 配置里原样照抄），出现界面异常时先关它们
+  - name: 网易云音乐增强
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/ios151/NeteasemusicAd/main/wyy.lpx"
+    compat_arguments:
+      FX: 'false'
+      MY: 'true'
+      DT: 'false'
+      GZ: 'true'
+      SOU: 'true'
+      XD: 'true'
+      BK: 'true'
+      TS: 'true'
+      HDTAB: 'false'
+      PRGG: 'false'
+      PRDRD: 'false'
+      PRSCVPT: 'false'
+      PRST: 'false'
+      HMPR: 'false'
+      PRRR: 'true'
+      PRRK: 'false'
+      PRMST: 'false'
+      PRCN: 'true'
+      PRPRS: 'true'
+      PRRSS: 'true'
+      LogLevel: info
+    enabled: true
+
+  # ── 第三波 ──
+  # 微信公众号只启用这一条：小程序去广告与个人域名的 wechatad 都改同一批接口，
+  # 同时开会互相覆盖，且小程序那条最容易把小程序改到白屏。
+  - name: 微信公众号去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/微信公众号去广告.beta.sgmodule"
+    enabled: true
+
+  - name: 淘宝去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/淘宝去广告.Ipx"
+    enabled: true
+
+  - name: 拼多多去广告
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/拼多多去广告.beta.sgmodule"
+    enabled: true
+
+  # Manmanbuy-Cookie: true 会把京东 Cookie 上报给第三方比价服务，是隐私代价而不只是广告问题
+  - name: 京东去广告比价
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/京东去广告.Ipx"
+    compat_arguments:
+      Manmanbuy-Cookie: 'true'
+      JDPrice-TitleEmbed: 'false'
+      JDPrice-DetailNotify: 'false'
+      JDPrice-DetailEmbed-Table: 'true'
+      JDPrice-DetailEmbed-Line: 'false'
+    enabled: true
+
+  # ── 其他 ──
+  - name: missav网页净化
+    url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/missav.module"
+    enabled: true

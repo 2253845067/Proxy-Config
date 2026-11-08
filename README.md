@@ -2,7 +2,7 @@
 
 个人代理客户端配置模板仓库。
 
-四份配置共用同一套规则集（Repcz/Tool `X` 分支）、同一套策略组命名（`Proxy` / `Auto` / `CN`，Loon 多一个 `场景分流`）和一致的 DNS / QUIC 处理思路；剩下的差异只来自客户端能力边界，逐项列在下面的「四端差异」表里。
+四份配置共用同一套规则集（Repcz/Tool `X` 分支）、同一套策略组命名（`Proxy` / `Auto` / `CN`，Loon 多一个 `场景分流`、Egern 多一个 `场景`）和一致的 DNS / QUIC 处理思路；剩下的差异只来自客户端能力边界，逐项列在下面的「四端差异」表里。
 
 ## 目录结构
 
@@ -72,8 +72,8 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 
 | 项目 | Mihomo | Loon | Egern | sing-box |
 | --- | --- | --- | --- | --- |
-| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `Proxy` / `AllNodes` / `Auto` / `CN` | `Proxy` / `Auto` / `CN` |
-| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT` | `action: reject` |
+| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `AllNodes` / `Auto` / `CN` | `Proxy` / `Auto` / `CN` |
+| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `action: reject` |
 | QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | 规则 `{"network":"udp","port":443}` |
 | 国内判定 | 四层 | 四层 | 四层 | 三层（无 ASN） |
 | `CN` 组可选项 | `DIRECT` / `Proxy` / `REJECT` | 同 | 同 | `direct` / `Proxy` |
@@ -148,12 +148,35 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 3. 导入完成后，切换并使用 `egern` 配置。
 4. 打开 [策略组] -> `机场订阅`，把 `urls` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存（该组已从旧的 `external` 写法迁移为官方推荐的 `select + urls`，两者等价）。
-5. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
-6. 回到仪表界面打开 Egern 开关即可。
+5. 打开 [策略组] -> `场景`，把 `WiFi1` / `WiFi2` 换成透明代理路由器的真实 SSID（详见下文「场景分流」；不用透明代理路由器就把这个组删掉，并把 `rules` 末尾 `default` 的 `policy` 改回 `Proxy`）。
+6. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
+7. 回到仪表界面打开 Egern 开关即可。
 
 > **DNS 注意**：`dns.proxy_nameservers` 的连接按官方语义是**强制直连**、且会绕过 `forward` 规则，所以必须填国内可达的 DoH（当前为 223.5.5.5 / 1.12.12.12）。若填 `8.8.8.8`、`1.1.1.1`，在国内网络下节点域名解析会失败，所有以域名下发的节点会直接不可用。`bootstrap`（223.5.5.5 / 119.29.29.29）只用于解析 DoH 主机名，同样必须是国内可达的地址。
 
 > **运行模式与端口**：`vif_only: true` 表示只走 VIF（TUN）模式，不接管系统代理；`http_port: 3080` / `socks_port: 3090` 只监听本机（`allow_external_connections: false`）；`compat_route: true` 打开兼容路由，减少路由冲突。
+
+> **场景分流（SSID 直连）**：`场景` 是 `conditional` 组——连上 `WiFi1` / `WiFi2` 时整体走 `DIRECT`，其他网络走 `Proxy`，而 `rules` 末尾的 `default` 指向它，于是「在家交给路由器、出门自己扛」变成一次开关级切换。两个 SSID 都是**占位名，必须替换**：SSID 是精确匹配，留着 `WiFi1` 不但不生效，遇到同名公共热点还会把流量误判成直连（Loon 端 `[Proxy Group]` 里的同名占位有一模一样的坑）。这一步依赖 `close_connections_on_policy_change: true`——没有它，切到 `DIRECT` 之后旧长连接仍会继续走代理节点。
+
+> **局域网排除**：分两层。`vif_excluded_routes` 是**路由级**（只收 CIDR，这些网段压根不进 VIF 路由表），覆盖 `127/8`、`169.254/16`、`100.64/10`、`10/8`、`172.16/12`、`192.168/16`；`bypass_tunnel_proxy` 是**目标级**（域名 + CIDR），只留 `*.local` / `*.lan` / `localhost` 这类路由级表达不了的。当前 `include_all_networks: true` 接管全部网络，这两层是局域网设备不被抓进隧道的唯一保障——访问 `192.168.10.1`、NAS、打印机异常时先查这里。同一个 CIDR 不要同时写进两处：重复声明不报错，但会让人误判到底哪一层在生效。
+
+> **广告拦截与 STUN**：`Reject` / `Ads_AWAvenue` 走 `REJECT-NO-DROP`（丢弃不回 RST），与 mihomo 的 `REJECT-DROP` 语义对齐——回 RST 等于告诉广告 SDK「这里有拦截器」，会触发重试甚至上报特征；代价是拦截表现为超时，个别 App 首屏可能慢 1-3 秒，疑似误杀就去看这两条规则的命中日志。`rules` 第一条是 `protocol: stun → REJECT`，用于防 WebRTC 泄漏真实 IP；这条**故意用 `REJECT` 而不是 `REJECT-NO-DROP`**，因为 WebRTC 需要快速失败才能及时回落 TURN，静默丢弃会让通话建立多等 5-10 秒。重度用 FaceTime / 语音会议的人若发现通话质量下降，先注释这一条。
+
+> **出口 IP 探测**：`public_ip_lookup_url: https://ipv4.ddnspod.com` 固定走 IPv4（与 `ipv6: false` 一致），该域名国内可达，所以 `CN` / `DIRECT` 策略下也能查到结果；换成 `ip.sb`、`ipify` 这类境外站点会在这两种策略下超时。
+
+> **模块（MITM 重写）**：`modules` 段启用 16 个模块，按用途分五组写在配置注释里，**排障时整组注释，不要逐个试**：
+
+| 分组 | 模块 | 作用 |
+| --- | --- | --- |
+| 基础设施 | `Script-Hub` | `script.hub` 是个假域名，靠它在本机把 Conf 转成 sgmodule；关掉它，「开屏广告」「高德去广告」会一起失效 |
+| 第一波 | 开屏广告、B站去广告、B站界面增强、YouTube净化、百度网页去广告 | 覆盖率最高的一批，开屏广告覆盖 400+ App；百度那条只作用于 `m.baidu.com` / `www.baidu.com` 的搜索首页，不含网盘与贴吧 |
+| 第二波 | 百度地图去广告、高德去广告、夸克去广告、夸克扫描王去广告、网易云音乐增强 | 单 App 界面净化 |
+| 第三波 | 微信公众号去广告、淘宝去广告、拼多多去广告、京东去广告比价 | 改响应体，有风控风险 |
+| 其他 | missav网页净化 | 网页净化 |
+
+> **MITM 相关注意**：`mitm` 段的 `ca_p12` / `ca_passphrase` 必须留空，证书由 Egern 自己管理；MITM 域名由各模块自己声明、客户端自动合并（实测合计 31 个具体域名，无通配），**不要在 `mitm` 里写 `*`**。首次启用会要求安装并信任根证书，装好之前所有模块都不生效。做到这里的代价是：证书固定（pinning）的 App（银行、12306、部分政务/游戏）被 MITM 后会**直接没有任何网络**——出现「某个 App 突然全断」时先禁用对应模块，不要先怀疑规则。另外这批模块只保留 GitHub 源（经 `gh-proxy`）与 `script.hub` 中转，B 配置里那些挂在个人域名（`loon.103516.xyz`、`yfamilys.com`、`mock.parsingbook.workers.dev`、`reven.jsforbaby.workers.dev`、`one-api.zzxu.de`）上的模块都没有引入：它们挂掉时是静默失效，不报错，只会某天功能突然回来。
+
+> **模块自带的 `[Rule]` 段**：模块会把自身的拦截规则合并进主规则，且多为 `pre-matching`（优先级高于 `rules` 段），所以它不在 `rules` 里出现却能生效。三条需要留意的误伤：拼多多会 REJECT `cdl-1/cdl-p2/cd-1.pddpic.com`（图片 CDN，商品图可能加载不出）、淘宝会 REJECT `ut.taobao.com` / `ossgw.alicdn.com` / `hudong.alicdn.com`（埋点与 CDN）、微信会 REJECT `DOMAIN-SUFFIX,wxs.qq.com`（小程序静态资源域，小程序白屏时第一个怀疑它）。其余注入规则都是纯广告或埋点域名。`script.hub`（开屏广告、高德两条走的中转）是 Script-Hub 模块伪造的本地域名，**离开客户端用 curl 访问必然失败，这不是配置错误**。
 
 > **QUIC**：Egern 不是用规则拦截，而是 `block_quic: true`——全局一份，`机场订阅` / `AllNodes` / `Auto` 三个组各一份。需要 HTTP/3 时要一次性把这些开关都关掉，只关一个不生效。
 
