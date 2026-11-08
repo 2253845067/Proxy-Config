@@ -87,10 +87,11 @@ DOMAIN-SUFFIX,diancan.xibeilangsaoma.com,CN
 # ── Apple 推送 / iMessage / FaceTime 走代理 ──
 # 用途：iMessage、FaceTime 激活或收发异常时，把 APNs 相关域名与网段从「Apple 全量直连」里单独拎出来走代理。
 # 想无条件走代理就把下面的 场景分流 换成 Proxy；不需要时整段注释掉即可。
+# 注意：不要加 DOMAIN-SUFFIX,akadns.net 之类的「Akamai 调度域」规则。Loon 会按 CNAME 链匹配，
+#      而天气、App Store、系统更新、iTunes、Support 全都 CNAME 到 *.akadns.net，加进来会把这些流量
+#      一起拽到代理上（实测会直接导致 Apple Watch 天气、App Store 加载失败）。
 DOMAIN,identity.apple.com,场景分流
 DOMAIN-SUFFIX,push.apple.com,场景分流
-DOMAIN-SUFFIX,akadns.net,场景分流
-DOMAIN-KEYWORD,apple.com.edgekey.net,场景分流
 IP-CIDR,17.249.0.0/16,场景分流,no-resolve
 IP-CIDR,17.252.0.0/16,场景分流,no-resolve
 IP-CIDR,17.57.144.0/22,场景分流,no-resolve
