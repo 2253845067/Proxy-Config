@@ -25,7 +25,7 @@
 | --- | --- | --- |
 | Mihomo | 节点由 Sub-Store 输出时注入，模板本身不写 `proxies` / `proxy-providers` | 在 Sub-Store 里配订阅与脚本操作（见下文） |
 | Loon | `AllNodes` 来自 Loon 内添加的订阅 | Loon 内添加机场订阅 |
-| Egern | `机场订阅` 组的 `urls` | 把占位串换成真实订阅 URL |
+| Egern | `机场订阅` 组的 `urls` | 把占位串换成真实订阅 URL（只需改这一处，`Proxy` 用 YAML 锚点复用） |
 | sing-box | `providers[0].url` | 把占位串换成真实订阅 URL |
 
 Egern 与 sing-box 仓库文件里写的是占位串（`这里填入你的机场订阅 URL` / `https://example.com/your-subscription`），**不替换就会一直加载失败**，这不是配置残缺。
@@ -72,7 +72,7 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 
 | 项目 | Mihomo | Loon | Egern | sing-box |
 | --- | --- | --- | --- | --- |
-| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `AllNodes` / `Auto` / `CN` | `Proxy` / `Auto` / `CN` |
+| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `Auto` / `CN`（+ 隐藏的 `机场订阅`） | `Proxy` / `Auto` / `CN` |
 | 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `action: reject` |
 | QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | 规则 `{"network":"udp","port":443}` |
 | 国内判定 | 四层 | 四层 | 四层 | 三层（无 ASN） |
@@ -147,7 +147,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 ```
 
 3. 导入完成后，切换并使用 `egern` 配置。
-4. 打开 [策略组] -> `机场订阅`，把 `urls` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存（该组已从旧的 `external` 写法迁移为官方推荐的 `select + urls`，两者等价）。
+4. 打开 [策略组] -> `机场订阅`，把 `urls` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存（该组已从旧的 `external` 写法迁移为官方推荐的 `select + urls`，两者等价）。**只需要改这一处**：`Proxy` 组用的是同一个 YAML 锚点 `*SubURL`，会自动跟着变。
 5. 打开 [策略组] -> `场景`，把 `WiFi1` / `WiFi2` 换成透明代理路由器的真实 SSID（详见下文「场景分流」；不用透明代理路由器就把这个组删掉，并把 `rules` 末尾 `default` 的 `policy` 改回 `Proxy`）。
 6. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
 7. 回到仪表界面打开 Egern 开关即可。
@@ -155,6 +155,8 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 > **DNS 注意**：`dns.proxy_nameservers` 的连接按官方语义是**强制直连**、且会绕过 `forward` 规则，所以必须填国内可达的 DoH（当前为 223.5.5.5 / 1.12.12.12）。若填 `8.8.8.8`、`1.1.1.1`，在国内网络下节点域名解析会失败，所有以域名下发的节点会直接不可用。`bootstrap`（223.5.5.5 / 119.29.29.29）只用于解析 DoH 主机名，同样必须是国内可达的地址。
 
 > **运行模式与端口**：`vif_only: true` 表示只走 VIF（TUN）模式，不接管系统代理；`http_port: 3080` / `socks_port: 3090` 只监听本机（`allow_external_connections: false`）；`compat_route: true` 打开兼容路由，减少路由冲突。
+
+> **Proxy 组：Auto 在前，节点直接跟在后**：`Proxy` 里只有 `Auto` 一个静态子策略，之后就是全部订阅节点（按名称去重），所以手动挑单个节点只需点开 `Proxy` 一次，不用再进一层汇总组。顺序不是猜的——官方语义是「`urls` 与 `policies` 混用时，订阅节点排在静态子策略之后」。这条规则是**单向的**：静态项只能排在节点前面，**没法排到节点后面**，所以「`Auto` → 节点 → `DIRECT`/`REJECT`」这种顺序在 Egern 里写不出来。当前取舍是让节点紧跟 `Auto`，直连 / 拒绝改由 `CN` 组切换（那里仍是 `DIRECT` / `Proxy` / `REJECT` 三项）；想把它们加回来就在 `policies` 里补 `- DIRECT` / `- REJECT`，位置会是 `Auto` 之后、节点之前。这里**故意没有用 `flatten`**：文档说 flatten 会展开「所有」嵌套策略组，`Auto` 会被一起展开、从列表里消失，正好和「第一个是 Auto」冲突。
 
 > **场景分流（SSID 直连）**：`场景` 是 `conditional` 组——连上 `WiFi1` / `WiFi2` 时整体走 `DIRECT`，其他网络走 `Proxy`，而 `rules` 末尾的 `default` 指向它，于是「在家交给路由器、出门自己扛」变成一次开关级切换。两个 SSID 都是**占位名，必须替换**：SSID 是精确匹配，留着 `WiFi1` 不但不生效，遇到同名公共热点还会把流量误判成直连（Loon 端 `[Proxy Group]` 里的同名占位有一模一样的坑）。这一步依赖 `close_connections_on_policy_change: true`——没有它，切到 `DIRECT` 之后旧长连接仍会继续走代理节点。
 
@@ -178,9 +180,9 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 > **模块自带的 `[Rule]` 段**：模块会把自身的拦截规则合并进主规则，且多为 `pre-matching`（优先级高于 `rules` 段），所以它不在 `rules` 里出现却能生效。三条需要留意的误伤：拼多多会 REJECT `cdl-1/cdl-p2/cd-1.pddpic.com`（图片 CDN，商品图可能加载不出）、淘宝会 REJECT `ut.taobao.com` / `ossgw.alicdn.com` / `hudong.alicdn.com`（埋点与 CDN）、微信会 REJECT `DOMAIN-SUFFIX,wxs.qq.com`（小程序静态资源域，小程序白屏时第一个怀疑它）。其余注入规则都是纯广告或埋点域名。`script.hub`（开屏广告、高德两条走的中转）是 Script-Hub 模块伪造的本地域名，**离开客户端用 curl 访问必然失败，这不是配置错误**。
 
-> **QUIC**：Egern 不是用规则拦截，而是 `block_quic: true`——全局一份，`机场订阅` / `AllNodes` / `Auto` 三个组各一份。需要 HTTP/3 时要一次性把这些开关都关掉，只关一个不生效。
+> **QUIC**：Egern 不是用规则拦截，而是 `block_quic: true`——全局一份，`机场订阅` / `Proxy` / `Auto` 三个组各一份。需要 HTTP/3 时要一次性把这些开关都关掉，只关一个不生效。
 
-> **订阅与过滤**：`机场订阅` 的 `urls` 是占位串，必须替换；`filter` 正则与其余三端同一套，用来剔除机场信息节点。`机场订阅` 和 `AllNodes` 都设了 `hidden: true`，只作为节点汇总入口，不在首页策略列表里显示。
+> **订阅与过滤**：订阅 URL 只在 `机场订阅` 的 `urls` 里写一次（带 YAML 锚点 `&SubURL`），`Proxy` 用 `*SubURL` 复用，**占位串只需要改一处**。`filter` 正则与其余三端同一套，用来剔除机场信息节点，两个组共用同一份（锚点 `&FilterAll`）。`机场订阅` 设了 `hidden: true`，只作为订阅入口，不在首页策略列表里显示。`Proxy` 自己也会按 `update_interval` 拉一次订阅（同一间隔、同一份），所以订阅实际被请求两次；这是为了拿到「Auto 在前、节点在后」的顺序——官方文档保证 `urls` 与 `policies` 混用时订阅节点排在静态子策略之后并按名称去重。
 
 > **ASN / GEO 库**：`ChinaASN` 规则依赖 `asn_db_url`（P3TERX 的 GeoLite2-ASN），`GEOIP` 兜底依赖 `geoip_db_url`（xream 的 ipinfo.country.mmdb）。这两项下载失败时不会报错，只是 ASN / GEOIP 规则静默失效，表现为部分国内 IP 被误走代理；排查分流异常时先确认这两个库能下载。
 

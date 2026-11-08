@@ -4,10 +4,11 @@
 #   - 通过 README 里的一键导入链接直接导入 Egern 使用。
 #   - 导入后把你的机场订阅 URL 添加到“机场订阅”策略组，其他策略组会自动复用这些节点。
 #
-# 策略组（6 个）：
+# 策略组（5 个）：
 #   - 场景：连上透明代理路由器的 WiFi 时整体 DIRECT，其余网络交给 Proxy；SSID 是占位名，导入后必须替换。
-#   - Proxy / Auto / CN：手动选择 / 自动测速 / 国内直连，三层命名与 mihomo、Loon 保持一致。
-#   - 机场订阅 / AllNodes：订阅入口与隐藏的节点汇总，不在首页显示。
+#   - Proxy：第一个是 Auto，后面直接列出全部订阅节点，可按节点手动选择。
+#   - Auto / CN：自动测速 / 国内直连，命名与 mihomo、Loon 保持一致。
+#   - 机场订阅：隐藏的订阅入口；节点只在这里定义，Proxy 通过 YAML 锚点 *SubURL 复用，占位串只改一处。
 #   - 不为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
 #
 # 规则（51 条，其中 46 个规则集，全部来自 Repcz/Tool 分支 X）：
@@ -96,7 +97,7 @@ policy_groups:
   # 官方推荐写法：直接在 select 上写 urls（external 是等价的旧式写法，长期保留但不建议新配置使用）
   - select:
       name: 机场订阅
-      urls:
+      urls: &SubURL                        # 锚点：Proxy 组用 *SubURL 复用同一份订阅，占位串只需改这一处
         - "这里填入你的机场订阅 URL"      # 占位串：必须替换成真实订阅地址，否则该组一直加载失败
       block_quic: true                  # 该组产出的节点同样拦 UDP/443
       hidden: true                      # 不在首页显示，只作订阅入口
@@ -120,29 +121,27 @@ policy_groups:
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png"
 
   # ── Proxy ──
+  # Auto 在前，后面直接跟全部订阅节点，便于手动挑单个节点。
+  # 顺序由官方文档保证：urls 与 policies 混用时，订阅节点排在静态子策略之后并按名称去重。
+  # 也就是说静态项（Auto、DIRECT、REJECT）只能排在节点「前面」，无法排到节点后面；
+  # 为了让节点紧跟 Auto，这里只留 Auto，直连/拒绝改由 CN 组切换（那里仍是 DIRECT/Proxy/REJECT 三项）。
+  # 没用 flatten：文档说 flatten 会展开「所有」嵌套策略组，Auto 会被一起展开、从列表里消失。
+  # 代价是订阅会被拉取两次（机场订阅 一次、这里一次），间隔一致，不影响使用。
   - select:
       name: Proxy
       policies:
         - Auto
-        - AllNodes
-        - DIRECT
-        - REJECT
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
-
-  - select:
-      name: AllNodes
-      policies:
-        - 机场订阅
-      flatten: true                     # 把上游订阅的节点摊平成一层，Proxy / Auto 才能逐个选
+      urls: *SubURL                       # 与 机场订阅 共用锚点，不用改两处
+      filter: *FilterAll
       block_quic: true
-      hidden: true                      # 隐藏的节点汇总组，实际选择走 Proxy
-      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
+      update_interval: 86400
+      icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png"
 
   - auto_test:
       name: Auto
       policies:
-        - AllNodes
-      flatten: true
+        - 机场订阅
+      flatten: true                     # 把 机场订阅 的节点摊平后逐个测速
       block_quic: true
       hidden: false
       interval: 300                     # 每 300 秒测速一轮（与 mihomo 的 Auto 一致）
