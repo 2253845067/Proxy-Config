@@ -16,8 +16,9 @@
 #   - 海外服务走 场景分流；未命中流量兜底走 场景分流。
 
 [General]
-# IPv6 支持
+# IPv6 解析模式：dual = DNS 同时查 A/AAAA；只想省事、避免半开 IPv6 拖慢解析可改 prefer-v4
 ip-mode = dual
+# IPv6 虚拟接口：auto 由 Loon 按当前网络决定是否创建，网络不支持 IPv6 时不会硬开导致启动变慢
 ipv6-vif = auto
 # 以下域名不走 Fake IP（Apple 推送、热点与局域网域名依赖真实 IP）
 # *.lan / *.local / *.arpa 必须保留真实 IP，否则本地设备（路由器、NAS、打印机）域名会被解析成 Fake IP
@@ -36,12 +37,14 @@ udp-fallback-mode = REJECT
 # 域名拦截行为
 dns-reject-mode = LoopbackIP
 domain-reject-mode = DNS
-# Wi-Fi 访问
+# Wi-Fi 访问：关闭表示不把代理共享给局域网其他设备；打开等于在本机开一个对外开放的代理端口
 allow-wifi-access = false
+# 共享时使用的本地端口（仅 allow-wifi-access = true 时生效）
 wifi-access-http-port = 1234
 wifi-access-socks5-port = 1235
+# 是否对局域网内其他设备的请求做 MITM：开了要在那些设备上装并信任证书，一般不需要
 mitm-on-wifi-access = false
-# 网络接口
+# 网络接口：auto 自动跟随当前主出口，切换有线/蜂窝/多网卡时不用手动指定
 interface-mode = auto
 # 测速超时 (s)
 test-timeout = 5
@@ -61,8 +64,10 @@ skip-proxy = 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,localhost,*.local
 bypass-tun = 10.0.0.0/8,100.64.0.0/10,127.0.0.0/8,169.254.0.0/16,172.16.0.0/12,192.0.0.0/24,192.0.2.0/24,192.88.99.0/24,192.168.0.0/16,198.51.100.0/24,203.0.113.0/24,224.0.0.0/4,255.255.255.255/32
 
 [Proxy]
+# 本段留空：节点由订阅注入，策略组里用 AllNodes（[Remote Filter] 产出）统一引用
 
 [Remote Proxy]
+# 本段留空：不单独下发节点列表，全部交给订阅
 
 [Remote Filter]
 AllNodes = NameRegex, FilterKey = "(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$"
@@ -175,8 +180,10 @@ ssid:WiFi1 = server:10.0.0.1
 ssid:WiFi2 = server:10.0.0.2
 
 [Rewrite]
+# 本段留空：URL 改写全部来自 [Plugin] 里插件自带的 Rewrite
 
 [Script]
+# 本段留空：脚本运行由插件（BoxJs / Script-Hub / 去广告插件）提供，不在本地写死
 
 [Plugin]
 # ── 新增 ──

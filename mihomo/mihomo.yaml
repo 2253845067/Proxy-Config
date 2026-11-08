@@ -115,7 +115,7 @@ dns:
   # ── 运行参数 ──
   enable: true                               # 开启内置 DNS 服务
   cache-algorithm: arc                       # DNS 缓存淘汰算法 ARC 相比传统 LRU 命中率更高
-  listen: 0.0.0.0:1053                       # 默认端口；53 端口由 TUN 的 dns-hijack 接管，不占 53 既避免与 Windows ICS/Docker 冲突，也不会在 allow-lan 下暴露开放解析器
+  listen: 0.0.0.0:1053                       # 内核默认端口；53 由 TUN 的 dns-hijack 接管，不占 53 避免与 Windows ICS/Docker 冲突；注意 allow-lan 下 0.0.0.0:1053 对局域网开放，无需共享时改 127.0.0.1:1053
   ipv6: false                                # 关闭 IPv6 解析 保持与全局设置一致
   respect-rules: true                        # DNS 请求遵循分流规则，由规则决定 DNS 查询走向而非固定出口
   prefer-h3: false                           # 与 respect-rules 同时开启容易互相干扰，官方也建议关闭

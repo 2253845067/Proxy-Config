@@ -15,25 +15,25 @@
 #   - 海外服务走 Proxy；GFW 兜底与未命中流量走 Proxy。
 
 ---
-ipv6: false
-http_port: 3080
-socks_port: 3090
-allow_external_connections: false
-vif_only: true
-block_quic: true
-hide_vpn_icon: false
+ipv6: false                                 # 关闭 IPv6 解析与出站，避免半开 IPv6 环境下大量连接超时
+http_port: 3080                             # 本地 HTTP 代理端口，仅本机可用
+socks_port: 3090                            # 本地 SOCKS5 代理端口，仅本机可用
+allow_external_connections: false           # 不把代理开放给局域网其他设备；需要共享再改 true
+vif_only: true                              # 只用 VIF（TUN）接管流量，不改系统代理设置
+block_quic: true                            # 全局拦 UDP/443 让浏览器回落 TCP；要放行 HTTP/3 需连各策略组里的同名开关一起关
+hide_vpn_icon: false                        # 是否在状态栏隐藏 VPN 图标
 hijack_dns:
-  - "*"
-geoip_db_url: https://gh-proxy.com/https://github.com/xream/geoip/releases/latest/download/ipinfo.country.mmdb
-asn_db_url: https://gh-proxy.com/https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb
-proxy_latency_test_url: https://www.gstatic.com/generate_204
-direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204
-compat_route: true
-include_all_networks: false
+  - "*"                                     # 劫持全部 DNS 查询进内置解析器，防止应用自带 DNS 绕过
+geoip_db_url: https://gh-proxy.com/https://github.com/xream/geoip/releases/latest/download/ipinfo.country.mmdb   # GEOIP 库：末条 geoip 兜底依赖它，下载失败会静默失效
+asn_db_url: https://gh-proxy.com/https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-ASN.mmdb             # ASN 库：ChinaASN 规则专用，缺了这条规则不报错但不生效
+proxy_latency_test_url: https://www.gstatic.com/generate_204                                        # 代理节点测速地址
+direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204                 # 直连测速地址（必须国内可达）
+compat_route: true                          # 兼容路由，缓解与其他 VPN/TUN 应用的路由冲突
+include_all_networks: false                 # 只接管默认路由；打开后连内网/热点流量也进隧道
 include_apns: true                          # 接管 APNs 流量，蜂窝数据下推送才能命中 AppleServers 规则；若无效再打开 include_all_networks
-include_cellular_services: false
-include_local_networks: false
-bypass_tunnel_proxy:
+include_cellular_services: false            # 不接管运营商 VoLTE / IMS 等蜂窝服务通道，免得打电话出问题
+include_local_networks: false               # 不接管局域网流量，与下面 bypass_tunnel_proxy 配合
+bypass_tunnel_proxy:                        # 这些目标不进隧道，直接由系统发出
   - "*.local"
   - "*.lan"
   - "localhost"
@@ -43,7 +43,7 @@ bypass_tunnel_proxy:
   - "169.254.0.0/16"
   - "172.16.0.0/12"
   - "192.168.0.0/16"
-real_ip_domains:
+real_ip_domains:                            # 永远返回真实 IP、不走 Fake IP 的域名（局域网域名与时间同步）
   - "*.lan"
   - "*.local"
   - "time.*.apple.com"
@@ -52,14 +52,14 @@ real_ip_domains:
   - "*.push.apple.com"
 
 dns:
-  bootstrap:
+  bootstrap:                                # 引导 DNS：只用来解析下面这些 DoH 的主机名，所以必须是 IP 形式
     - 223.5.5.5
     - 119.29.29.29
   upstreams:
-    domestic:
+    domestic:                               # 国内 DoH：命中国内规则的域名用它解析
       - https://223.5.5.5/dns-query
       - https://1.12.12.12/dns-query
-    overseas:
+    overseas:                               # 国外 DoH：forward 判定为 overseas 的域名用它解析
       - https://8.8.8.8/dns-query
       - https://1.1.1.1/dns-query
   # 官方语义：proxy_nameservers 的连接一律强制直连（且绕过 forward 规则），
@@ -67,7 +67,7 @@ dns:
   proxy_nameservers:
     - https://223.5.5.5/dns-query
     - https://1.12.12.12/dns-query
-  forward:
+  forward:                                  # 自上而下匹配，决定用哪一组 upstream 解析（不写这条时全部走 overseas）
     - proxy_rule_set:
         match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Lan.yaml"
         value: domestic
@@ -76,7 +76,7 @@ dns:
         match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/ChinaDomain.yaml"
         value: domestic
         update_interval: 86400
-    - domain_wildcard:
+    - domain_wildcard:                      # .cn 兜底走国内，避免 ChinaDomain 列表没收录的新域名被送去海外解析
         match: "*.cn"
         value: domestic
     - domain_wildcard:
@@ -89,9 +89,9 @@ policy_groups:
   - select:
       name: 机场订阅
       urls:
-        - "这里填入你的机场订阅 URL"
-      block_quic: true
-      hidden: true
+        - "这里填入你的机场订阅 URL"      # 占位串：必须替换成真实订阅地址，否则该组一直加载失败
+      block_quic: true                  # 该组产出的节点同样拦 UDP/443
+      hidden: true                      # 不在首页显示，只作订阅入口
       filter: &FilterAll '(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$'
       update_interval: 86400
 
@@ -109,9 +109,9 @@ policy_groups:
       name: AllNodes
       policies:
         - 机场订阅
-      flatten: true
+      flatten: true                     # 把上游订阅的节点摊平成一层，Proxy / Auto 才能逐个选
       block_quic: true
-      hidden: true
+      hidden: true                      # 隐藏的节点汇总组，实际选择走 Proxy
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Server.png"
 
   - auto_test:
@@ -121,9 +121,9 @@ policy_groups:
       flatten: true
       block_quic: true
       hidden: false
-      interval: 300
-      tolerance: 50
-      timeout: 5
+      interval: 300                     # 每 300 秒测速一轮（与 mihomo 的 Auto 一致）
+      tolerance: 50                     # 延迟优于当前节点 50ms 以上才切换，避免来回跳
+      timeout: 5                        # 单次测速超时（秒）
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Available.png"
 
   # ── CN ──
@@ -201,7 +201,7 @@ rules:
       policy: CN
       update_interval: 86400
   - rule_set:
-      name: ChinaASN
+      name: ChinaASN                    # 依赖上面 asn_db_url 的 ASN 库，库拉不下来时这条规则静默不生效
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/ChinaASN.yaml"
       policy: CN
       update_interval: 86400
@@ -385,8 +385,8 @@ rules:
 
   # ── 兜底 ──
   - geoip:
-      match: CN
+      match: CN                         # 已解析出 IP 且归属中国 -> CN
       policy: CN
-      no_resolve: true
+      no_resolve: true                  # 只判断已有 IP 的连接，不为域名额外发起解析
   - default:
-      policy: Proxy
+      policy: Proxy                     # 前面全没命中 -> Proxy
