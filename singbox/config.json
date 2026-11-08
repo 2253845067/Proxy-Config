@@ -544,6 +544,10 @@
         "action": "reject"
       },
       {
+        "domain_suffix": ["weather.apple.com", "weather-analytics-events.apple.com"],
+        "outbound": "CN"
+      },
+      {
         "rule_set": ["WeChat", "Bilibili", "AppleCN", "OneDrive", "DownloadCDN_CN", "ChinaDomain"],
         "outbound": "CN"
       },

@@ -280,6 +280,10 @@ rules:
   # ══════════════════════════════════════════
   - RULE-SET,WeChat,CN                                               # 微信 / 微信支付
   - RULE-SET,Bilibili,CN                                             # B 站
+  # Apple 天气放行直连：AppleServers 里的 17.0.0.0/8 会把天气的 17.x CDN 一起拽去代理，
+  # 天气数据 / WeatherKit 已在 AppleCN 里，这里补上 AppleCN 没覆盖的两个
+  - DOMAIN-SUFFIX,weather.apple.com,CN                               # 天气服务
+  - DOMAIN-SUFFIX,weather-analytics-events.apple.com,CN              # 天气埋点
   - RULE-SET,AppleCN,CN                                              # Apple 中国区服务
   - RULE-SET,OneDrive,CN                                             # OneDrive
   - RULE-SET,DownloadCDN_CN,CN                                       # 国内下载 CDN

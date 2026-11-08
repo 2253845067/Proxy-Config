@@ -92,6 +92,9 @@ DOMAIN-SUFFIX,diancan.xibeilangsaoma.com,CN
 #      一起拽到代理上（实测会直接导致 Apple Watch 天气、App Store 加载失败）。
 DOMAIN,identity.apple.com,场景分流
 DOMAIN-SUFFIX,push.apple.com,场景分流
+# courier.push.apple.com 的 CNAME 终点，与 mihomo / egern / sing-box 的 AppleServers 规则集保持一致；
+# 只写这个精确子域，不要写成 akadns.net 通配
+DOMAIN-SUFFIX,push-apple.com.akadns.net,场景分流
 IP-CIDR,17.249.0.0/16,场景分流,no-resolve
 IP-CIDR,17.252.0.0/16,场景分流,no-resolve
 IP-CIDR,17.57.144.0/22,场景分流,no-resolve

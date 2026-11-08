@@ -30,7 +30,7 @@ proxy_latency_test_url: https://www.gstatic.com/generate_204
 direct_latency_test_url: http://connectivitycheck.platform.hicloud.com/generate_204
 compat_route: true
 include_all_networks: false
-include_apns: false
+include_apns: true                          # 接管 APNs 流量，蜂窝数据下推送才能命中 AppleServers 规则；若无效再打开 include_all_networks
 include_cellular_services: false
 include_local_networks: false
 bypass_tunnel_proxy:
@@ -172,6 +172,14 @@ rules:
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Bilibili.yaml"
       policy: CN
       update_interval: 86400
+  # Apple 天气放行直连：AppleServers 里的 17.0.0.0/8 会把天气的 17.x CDN 一起拽去代理，
+  # 天气数据 / WeatherKit 已在 AppleCN 里，这里补上 AppleCN 没覆盖的两个
+  - domain_suffix:
+      match: weather.apple.com
+      policy: CN
+  - domain_suffix:
+      match: weather-analytics-events.apple.com
+      policy: CN
   - rule_set:
       name: AppleCN
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/AppleCN.yaml"
