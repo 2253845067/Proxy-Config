@@ -106,6 +106,7 @@ tun:
   auto-redirect: false                       # 桌面 GUI 由 TUN 路由接管，不启用 Linux 专用重定向
   auto-detect-interface: true                # 自动识别真实网络出口
   strict-route: true                         # 严格路由，阻止 IPv4/IPv6 流量绕过 TUN
+  endpoint-independent-nat: true             # 端点独立 NAT，提升 UDP NAT 穿透性能（游戏/实时通讯优化）
 
 # =======================================================
 # 4. DNS
@@ -139,6 +140,16 @@ dns:
   nameserver:                                # 国外兜底 未命中的域名走海外 DoH 并强制从 Proxy 出境
     - https://1.1.1.1/dns-query#Proxy
     - https://8.8.8.8/dns-query#Proxy
+
+  # ── DNS Fallback 防污染 ──
+  fallback:                                  # 备用 DNS，当 nameserver 返回污染结果时自动切换
+    - https://1.1.1.1/dns-query#Proxy
+    - https://8.8.8.8/dns-query#Proxy
+  fallback-filter:                           # fallback 触发条件
+    geoip: true                              # 启用 GeoIP 过滤
+    geoip-code: CN                           # 当 nameserver 返回非中国 IP 时使用 fallback
+    ipcidr:                                  # 当返回这些污染 IP 段时使用 fallback
+      - 240.0.0.0/4                          # 保留地址段，常被用于 DNS 污染
 
   # ── DNS 分流 ──
   nameserver-policy:
