@@ -2,7 +2,7 @@
 
 个人代理客户端配置模板仓库。
 
-四份配置共用同一套规则集（Repcz/Tool `X` 分支）、同一套策略组命名（`Proxy` / `Auto` / `CN`，Loon 多一个 `场景分流`、Egern 多一个 `场景`）和一致的 DNS / QUIC 处理思路；剩下的差异只来自客户端能力边界，逐项列在下面的「四端差异」表里。
+五份配置共用同一套规则集（Repcz/Tool `X` 分支）、同一套策略组命名（`Proxy` / `Auto` / `CN`，Loon / Surge 多一个 `场景分流`、Egern 多一个 `场景`）和一致的 DNS / QUIC 处理思路；剩下的差异只来自客户端能力边界，逐项列在下面的「五端差异」表里。
 
 ## 目录结构
 
@@ -10,6 +10,8 @@
 - `mihomo/mihomo.yaml`：当前使用的 Mihomo 主配置。
 - `loon/`：Loon 配置文件（完整配置，可直接一键导入）。
 - `loon/loon.lcf`：当前使用的 Loon 主配置。
+- `surge/`：Surge 配置文件（完整配置，可直接从 URL 导入）。
+- `surge/surge.conf`：当前使用的 Surge 主配置。
 - `egern/`：Egern 配置文件（完整配置，可直接一键导入）。
 - `egern/egern.yaml`：当前使用的 Egern 主配置。
 - `singbox/`：sing-box 配置模板（完整配置，仅 reF1nd 分支核心可用）。
@@ -26,9 +28,10 @@
 | Mihomo | 节点由 Sub-Store 输出时注入，模板本身不写 `proxies` / `proxy-providers` | 在 Sub-Store 里配订阅与脚本操作（见下文） |
 | Loon | `AllNodes` 来自 Loon 内添加的订阅 | Loon 内添加机场订阅 |
 | Egern | `机场订阅` 组的 `urls` | 把占位串换成真实订阅 URL（只需改这一处，`Proxy` 用 YAML 锚点复用） |
+| Surge | `机场订阅` 组的 `policy-path` | 把占位串换成真实订阅 URL（只需改这一处，`Proxy` / `Auto` 用 `include-other-group` 复用） |
 | sing-box | `providers[0].url` | 把占位串换成真实订阅 URL |
 
-Egern 与 sing-box 仓库文件里写的是占位串（`这里填入你的机场订阅 URL` / `https://example.com/your-subscription`），**不替换就会一直加载失败**，这不是配置残缺。
+Egern、Surge 与 sing-box 仓库文件里写的是占位串（`这里填入你的机场订阅 URL` / `https://example.com/your-subscription`），**不替换就会一直加载失败**，这不是配置残缺。
 
 ### 端口与监听
 
@@ -38,18 +41,19 @@ Egern 与 sing-box 仓库文件里写的是占位串（`这里填入你的机场
 | sing-box | `7890`（mixed）、`127.0.0.1:9090`（面板）、TUN `172.19.0.1/30` | 与 Mihomo 抢同一个 7890，**同一台机器不要同时启用** |
 | Egern | `3080`（http）、`3090`（socks） | 只监听本机，`allow_external_connections: false` |
 | Loon | 无固定端口 | 走 Network Extension 隧道 |
+| Surge | 无固定端口 | 走 Network Extension / Enhanced Mode 隧道；`allow-wifi-access = false`，不向局域网共享代理 |
 
 ### 下载镜像
 
-四端引用的规则集、图标、面板都经第三方 GitHub 镜像：
+五端引用的规则集、图标、面板都经第三方 GitHub 镜像：
 
-- mihomo / Loon / Egern：`https://gh-proxy.com/https://raw.githubusercontent.com/...`
+- mihomo / Loon / Egern / Surge：`https://gh-proxy.com/https://raw.githubusercontent.com/...`
 - sing-box：`https://ghfast.top/https://github.com/Repcz/Tool/raw/X/sing-box/Rules/*.srs`
 
 镜像失效时整体替换即可（两种镜像的前缀形式相同，可以直接互换）：
 
 ```bash
-grep -rl 'gh-proxy.com' mihomo loon egern | xargs sed -i 's#gh-proxy.com#ghfast.top#g'
+grep -rl 'gh-proxy.com' mihomo loon egern surge | xargs sed -i 's#gh-proxy.com#ghfast.top#g'
 ```
 
 Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.com` 对某些路径会返回 403。
@@ -58,26 +62,26 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 
 配置里不含任何节点、订阅链接或证书内容。`ca-p12` / `ca-passphrase` / `secret` 一律留空，由客户端自己管理，**不要把证书或订阅写进这个仓库**。
 
-## 规则源与分流逻辑（四端通用）
+## 规则源与分流逻辑（五端通用）
 
-> **规则来源**：规则集全部取自 [Repcz/Tool](https://github.com/Repcz/Tool)（分支 `X`）对应的 `mihomo/Rules`、`Loon/Rules`、`Egern/Rules`、`sing-box/Rules` 目录，经镜像中转引用，上游每天自动重建，本仓库只引用不镜像内容。mihomo / Loon / Egern 各 46 个，sing-box 45 个（上游没有 `ChinaASN.srs`，官方 sing-box 也不支持 ASN 匹配）。原先的 ACL4SSR 大列表（`BanEasyList` 4.1 万条 + `BanEasyPrivacy` 4 万条 + 其余三项，合计约 8.7 万条）已整体下线，换成 `Reject`（6200 条精选）+ `Ads_AWAvenue`（国内 App 净化），内存占用与启动解析量大幅下降。
+> **规则来源**：规则集全部取自 [Repcz/Tool](https://github.com/Repcz/Tool)（分支 `X`）对应的 `mihomo/Rules`、`Loon/Rules`、`Egern/Rules`、`Surge/Rules`、`sing-box/Rules` 目录，经镜像中转引用，上游每天自动重建，本仓库只引用不镜像内容。mihomo / Loon / Egern / Surge 各 46 个，sing-box 45 个（上游没有 `ChinaASN.srs`，官方 sing-box 也不支持 ASN 匹配）。原先的 ACL4SSR 大列表（`BanEasyList` 4.1 万条 + `BanEasyPrivacy` 4 万条 + 其余三项，合计约 8.7 万条）已整体下线，换成 `Reject`（6200 条精选）+ `Ads_AWAvenue`（国内 App 净化），内存占用与启动解析量大幅下降。
 >
-> 规则集**同源**，但本地补充规则**不完全相同**，看分流结果时不要只看规则集：Loon 额外强制两条业务域名直连（`report-online.sh.wxgateway.com`、`diancan.xibeilangsaoma.com`），同时少了其他三端都写死的 `weather.apple.com` / `weather-analytics-events.apple.com → CN`——Loon 上这两个域名会落到 `场景分流`（默认代理），这是当前**有意保留**的差异；需要对齐时自己在 `[Rule]` 里补两行 `DOMAIN-SUFFIX` 即可。
+> 规则集**同源**，但本地补充规则**不完全相同**，看分流结果时不要只看规则集：Loon 额外强制两条业务域名直连（`report-online.sh.wxgateway.com`、`diancan.xibeilangsaoma.com`），同时少了其他四端都写死的 `weather.apple.com` / `weather-analytics-events.apple.com → CN`——Loon 上这两个域名会落到 `场景分流`（默认代理），这是当前**有意保留**的差异；需要对齐时自己在 `[Rule]` 里补两行 `DOMAIN-SUFFIX` 即可。Surge 的天气域名补丁与 mihomo / Egern / sing-box 对齐。
 >
-> **国内判定**：mihomo / Loon / Egern 是四层递进——`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底。`ChinaASN` 依赖真实目标 IP，mihomo 里显式带 `no-resolve`，只在已拿到 IP 的连接上生效。sing-box 只有三层（`ChinaDomain` → `ChinaIP` → 末条 `final: Proxy`），没有 ASN 和 GEOIP 兜底。
+> **国内判定**：mihomo / Loon / Egern / Surge 是四层递进——`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底。`ChinaASN` 依赖真实目标 IP，mihomo / Surge 里显式带 `no-resolve`，只在已拿到 IP 的连接上生效。Surge 的 `IP-ASN` 用的是客户端自带的 GeoLite2 ASN 库（随 App 更新，配置里无法更换）。sing-box 只有三层（`ChinaDomain` → `ChinaIP` → 末条 `final: Proxy`），没有 ASN 和 GEOIP 兜底。
 >
-> **规则格式**：mihomo 用文本 `classical` 列表（`behavior: classical` + `format: text`），不依赖 mrs 格式，旧内核也能跑；Loon 是文本 list；Egern 是 yaml 规则集；sing-box 是编译后的 `.srs` 二进制。
+> **规则格式**：mihomo 用文本 `classical` 列表（`behavior: classical` + `format: text`），不依赖 mrs 格式，旧内核也能跑；Loon / Surge 是文本 list；Egern 是 yaml 规则集；sing-box 是编译后的 `.srs` 二进制。
 
-### 四端差异
+### 五端差异
 
-| 项目 | Mihomo | Loon | Egern | sing-box |
-| --- | --- | --- | --- | --- |
-| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `Auto` / `CN`（+ 隐藏的 `机场订阅`） | `Proxy` / `Auto` / `CN` |
-| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `action: reject` |
-| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | 规则 `{"network":"udp","port":443}` |
-| 国内判定 | 四层 | 四层 | 四层 | 三层（无 ASN） |
-| `CN` 组可选项 | `DIRECT` / `Proxy` / `REJECT` | 同 | 同 | `direct` / `Proxy` |
-| 规则格式 | classical text | text | yaml | srs |
+| 项目 | Mihomo | Loon | Egern | Surge | sing-box |
+| --- | --- | --- | --- | --- | --- |
+| 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `Auto` / `CN`（+ 隐藏的 `机场订阅`） | 同 + `场景分流`（+ 隐藏的 `机场订阅`） | `Proxy` / `Auto` / `CN` |
+| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `REJECT-NO-DROP` | `action: reject` |
+| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | 规则 `{"network":"udp","port":443}` |
+| 国内判定 | 四层 | 四层 | 四层 | 四层（ASN 库随 App 更新，配置无法更换） | 三层（无 ASN） |
+| `CN` 组可选项 | `DIRECT` / `Proxy` / `REJECT` | 同 | 同 | 同 | `direct` / `Proxy` |
+| 规则格式 | classical text | text | yaml | text | srs |
 
 ## Mihomo 使用方法
 
@@ -139,7 +143,43 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 > - `[Host]` 里每个 WiFi 单独一行 `ssid:SSID = server:路由器IP`（`ssid:` 与 `server:` 后都要顶格写，不能留空格，否则 SSID 名会带前导空格匹配不到）；
 > - 普通 WiFi（没有路由器翻墙）不用列出，自动走 default 的 Proxy/Auto。
 
+## Surge 使用方法
+
+1. 打开 Surge → 首页顶部 / Mac 侧边栏最下方的 [更多] → [从 URL 下载配置]，填：
+
+```text
+https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
+```
+
+也可在已安装 Surge 的设备上用一键导入（把配置 URL 交给 Surge 打开）：
+
+```text
+surge:///install-config?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf
+```
+
+镜像打不开时，把上面两处的 `https://gh-proxy.com/` 前缀去掉，改用 GitHub 原始地址：
+
+```text
+https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
+```
+
+2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
+3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。
+4. 需要透明代理路由器时，打开 [策略组] → `场景分流`，确认 `"YUQI"` / `"WiFi2"` 是路由器的真实 SSID（与 Loon 配置一致）；已改名或不用就把对应项删掉，否则遇到同名公共热点会把流量误判成直连。不用场景分流时，把 `[Rule]` 里指向 `场景分流` 的策略和末条 `FINAL` 改成 `Proxy` 即可。
+5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
+
+> **DNS 防泄漏**：配置只写 IP 形式的国内 DoH（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`），**故意不写明文 `dns-server`**，避免 DoH 主机名还要先走一遍明文 bootstrap；并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Surge。`encrypted-dns-follow-outbound-mode = false`，因为这三条 DoH 国内可直连，不必再经 `Proxy`，也可避免和节点解析形成循环依赖。
+>
+> **DNS 限制**（相对 mihomo）：Surge 没有 `nameserver-policy`，不能把海外域名的 DoH 经 `Proxy` 出境，因此这里采用和 Loon 相同的思路——全程走国内加密 DNS，而不是 mihomo 那套「国内走 223.5.5.5、海外走 1.1.1.1#Proxy」。加密 DNS 失败时 Surge 仍可能回落到系统 DNS（与 Loon 类似）；若必须留明文兜底，可取消配置里 `dns-server` 那一行的注释。另外 Surge 不是 mihomo 那种可精细控制的 fake-ip 模式，只用 `always-real-ip` 保证局域网 / Apple 等域名拿到真实 IP；`read-etc-hosts = false`，本机 hosts 不会改解析结果。
+
+> **其他关键项**：`udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`include-local-networks = false` + `skip-proxy` 覆盖 RFC1918 与保留网段（局域网设备流量不进隧道）、`ipv6 = false` + `ipv6-vif = auto`。广告拦截用 `REJECT-NO-DROP`（丢弃不回 RST），语义上贴近 mihomo 的 `REJECT-DROP` / Egern 的 `REJECT-NO-DROP`，但个别旧版 Surge 若不认这个策略名，把这两条改成 `REJECT` 即可。QUIC 用规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT` 拦截（与 Loon 相同）；需要 HTTP/3 时注释掉这一条。另有一条 `PROTOCOL,STUN,REJECT`，用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），FaceTime / 语音会议异常时可先注释它。
+
+> **GeoIP / ASN**：`GEOIP,CN` 使用 `geoip-maxmind-url` 指向的 Loyalsoldier 国家库（经 `gh-proxy.com` 中转）。`ChinaASN`（`IP-ASN`）用的是 Surge **自带**的 GeoLite2 ASN 库，只随 App 更新，配置里没有像 Egern `asn_db_url` 那样的更换入口——这是 Surge 的能力边界，不是漏配。库过旧时部分国内 IP 可能被误走代理，优先升级 Surge。
+
+> **本配置不含模块 / MITM 证书**：没有移植 Loon 插件或 Egern 模块，`[Proxy]`、证书相关字段都是空的。需要去广告脚本或 MITM 时，在客户端自行添加模块，不要把 `ca-p12` / 订阅写回这个仓库。
+
 ## Egern 使用方法
+
 
 1. 点击一键导入 [配置](https://egernapp.com/profiles/new?name=egern&url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fegern%2Fegern.yaml)。
 2. 如果无法跳转导入，打开 Egern 底部 [设置] -> 最上面 [配置] -> 右上角 [+号] -> [下载]，URL 填写：
@@ -227,7 +267,7 @@ mihomo -t -f mihomo/mihomo.yaml
 sing-box check -c singbox/config.json
 ```
 
-Loon / Egern 没有本地校验器，导入后在客户端 [配置] 页确认无红色报错，再逐项核对规则集数量（46 / 46 / 46 / 45）。
+Loon / Egern / Surge 没有本地校验器，导入后在客户端 [配置] 页确认无红色报错，再逐项核对规则集数量（46 / 46 / 46 / 46 / 45）。
 
 相关参考：
 
