@@ -68,7 +68,7 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 >
 > 规则集**同源**，但本地补充规则**不完全相同**，看分流结果时不要只看规则集：Loon 额外强制两条业务域名直连（`report-online.sh.wxgateway.com`、`diancan.xibeilangsaoma.com`），同时少了其他四端都写死的 `weather.apple.com` / `weather-analytics-events.apple.com → CN`——Loon 上这两个域名会落到 `场景分流`（默认代理），这是当前**有意保留**的差异；需要对齐时自己在 `[Rule]` 里补两行 `DOMAIN-SUFFIX` 即可。Surge 的天气域名补丁与 mihomo / Egern / sing-box 对齐。
 >
-> **国内判定**：mihomo / Loon / Egern / Surge 是四层递进——`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底。`ChinaASN` 依赖真实目标 IP，mihomo / Surge 里显式带 `no-resolve`，只在已拿到 IP 的连接上生效。Surge 的 `IP-ASN` 用的是客户端自带的 GeoLite2 ASN 库（随 App 更新，配置里无法更换）。sing-box 只有三层（`ChinaDomain` → `ChinaIP` → 末条 `final: Proxy`），没有 ASN 和 GEOIP 兜底。
+> **国内判定**：mihomo / Loon / Egern / Surge 都是四层——`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底，但 **Surge 的排列位置不同**：Surge 求值到第一条 IP 规则时会暂停并做一次真实 DNS 解析，所以 Surge 里 IP 三层被整体挪到「所有域名规则之后、`FINAL` 之前」，并且**不带** `no-resolve`——只有「域名表全没命中」的流量才解析一次做 IP 兜底；命中域名表时零解析。mihomo / Loon / Egern 仍是 `ChinaASN` / `ChinaIP` 紧跟在 `ChinaDomain` 后面并带 `no-resolve`（它们的规则引擎不因 IP 规则中断求值）。Surge 的 `IP-ASN` 用的是客户端自带的 GeoLite2 ASN 库（随 App 更新，配置里无法更换）。sing-box 只有三层（`ChinaDomain` → `ChinaIP` → 末条 `final: Proxy`），没有 ASN 和 GEOIP 兜底。
 >
 > **规则格式**：mihomo 用文本 `classical` 列表（`behavior: classical` + `format: text`），不依赖 mrs 格式，旧内核也能跑；Loon / Surge 是文本 list；Egern 是 yaml 规则集；sing-box 是编译后的 `.srs` 二进制。
 
@@ -77,8 +77,8 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 | 项目 | Mihomo | Loon | Egern | Surge | sing-box |
 | --- | --- | --- | --- | --- | --- |
 | 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `Auto` / `CN`（+ 隐藏的 `机场订阅`） | 同 + `场景分流`（+ 隐藏的 `机场订阅`） | `Proxy` / `Auto` / `CN` |
-| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `REJECT-NO-DROP` | `action: reject` |
-| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | 规则 `{"network":"udp","port":443}` |
+| 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `REJECT` + `pre-matching`（DNS / SYN 阶段即拒，命中风暴时自动升级 `REJECT-DROP`） | `action: reject` |
+| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | `block-quic = all-proxy` 开关（不是规则；只挡走代理的 QUIC，直连与国内保留 HTTP/3） | 规则 `{"network":"udp","port":443}` |
 | 国内判定 | 四层 | 四层 | 四层 | 四层（ASN 库随 App 更新，配置无法更换） | 三层（无 ASN） |
 | `CN` 组可选项 | `DIRECT` / `Proxy` / `REJECT` | 同 | 同 | 同 | `direct` / `Proxy` |
 | 规则格式 | classical text | text | yaml | text | srs |
@@ -164,15 +164,25 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
 2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
-3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。
-4. 需要透明代理路由器时，打开 [策略组] → `场景分流`，确认 `"YUQI"` / `"WiFi2"` 是路由器的真实 SSID（与 Loon 配置一致）；已改名或不用就把对应项删掉，否则遇到同名公共热点会把流量误判成直连。不用场景分流时，把 `[Rule]` 里指向 `场景分流` 的策略和末条 `FINAL` 改成 `Proxy` 即可。
+3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
+4. 需要透明代理路由器时，打开 [策略组] → `场景分流`，确认 `"YUQI"` / `"WiFi2"` 是路由器的真实 SSID（与 Loon 配置一致）；已改名或不用就把对应项删掉，否则遇到同名公共热点会把流量误判成直连。同时把 `[SSID Setting]` 里的 `SSID:YUQI dns-server=192.168.77.1` 改成你路由器的实际 IP——连上该 WiFi 时 DNS 交给路由器解析（路由器的 DNS 分流 / 广告拦截才会生效），`WiFi2` 后面已留一行注释模板，改好 IP 再取消注释。不用场景分流时，把 `[Rule]` 里指向 `场景分流` 的策略和末条 `FINAL` 改成 `Proxy` 即可。
 5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
 
-> **DNS 防泄漏**：配置只写 IP 形式的国内 DoH（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`），**故意不写明文 `dns-server`**，避免 DoH 主机名还要先走一遍明文 bootstrap；并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Surge。`encrypted-dns-follow-outbound-mode = false`，因为这三条 DoH 国内可直连，不必再经 `Proxy`，也可避免和节点解析形成循环依赖。
+> **DNS 防泄漏**：配置只写 IP 形式的国内 DoH（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`），**故意不写明文 `dns-server`**，避免 DoH 主机名还要先走一遍明文 bootstrap；并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Surge。`encrypted-dns-follow-outbound-mode = false`，因为这三条 DoH 国内可直连，不必再经 `Proxy`，也可避免和节点解析形成循环依赖（代价是 `PROTOCOL,DOH` / `DOQ` 这类规则不会生效，加密 DNS 查询根本不进规则系统）。连上透明代理路由器时例外：`[SSID Setting]` 里 `SSID:YUQI dns-server=192.168.77.1,encrypted-dns-server=off` 会把该网络的 DNS 交给路由器，路由器的 DNS 分流 / 广告拦截才会生效；全局已配加密 DNS，所以 `encrypted-dns-server=off` 必须显式写，否则切不回传统 DNS。
 >
-> **DNS 限制**（相对 mihomo）：Surge 没有 `nameserver-policy`，不能把海外域名的 DoH 经 `Proxy` 出境，因此这里采用和 Loon 相同的思路——全程走国内加密 DNS，而不是 mihomo 那套「国内走 223.5.5.5、海外走 1.1.1.1#Proxy」。加密 DNS 失败时 Surge 仍可能回落到系统 DNS（与 Loon 类似）；若必须留明文兜底，可取消配置里 `dns-server` 那一行的注释。另外 Surge 不是 mihomo 那种可精细控制的 fake-ip 模式，只用 `always-real-ip` 保证局域网 / Apple 等域名拿到真实 IP；`read-etc-hosts = false`，本机 hosts 不会改解析结果。
+> **DNS 限制**（相对 mihomo）：Surge 没有 `nameserver-policy`，不能把海外域名的 DoH 经 `Proxy` 出境，因此这里采用和 Loon 相同的思路——全程走国内加密 DNS，而不是 mihomo 那套「国内走 223.5.5.5、海外走 1.1.1.1#Proxy」。真要给个别域名换解析器，Surge 的出口是 `[Host]` 的 `server:` 映射，例如 `example.com = server:https://1.1.1.1/dns-query`（只对写死的域名生效，不是按规则分流）。加密 DNS 失败时 Surge 仍可能回落到系统 DNS（与 Loon 类似）；若必须留明文兜底，可取消配置里 `dns-server` 那一行的注释。另外 Surge 不是 mihomo 那种可精细控制的 fake-ip 模式，只用 `always-real-ip` 保证局域网 / Apple 等域名拿到真实 IP；`read-etc-hosts = false`，本机 hosts 不会改解析结果。
 
-> **其他关键项**：`udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`include-local-networks = false` + `skip-proxy` 覆盖 RFC1918 与保留网段（局域网设备流量不进隧道）、`ipv6 = false` + `ipv6-vif = auto`。广告拦截用 `REJECT-NO-DROP`（丢弃不回 RST），语义上贴近 mihomo 的 `REJECT-DROP` / Egern 的 `REJECT-NO-DROP`，但个别旧版 Surge 若不认这个策略名，把这两条改成 `REJECT` 即可。QUIC 用规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT` 拦截（与 Loon 相同）；需要 HTTP/3 时注释掉这一条。另有一条 `PROTOCOL,STUN,REJECT`，用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），FaceTime / 语音会议异常时可先注释它。
+> **其他关键项**：`udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`ipv6 = false` + `ipv6-vif = auto`。局域网流量由 `skip-proxy` 与 `[Rule]` 的私网规则兜住，`skip-proxy` 已连带写上 IPv6 的 `fc00::/7` / `fe80::/10`——现在 `ipv6 = false` 用不上，将来开 IPv6 时不用再改这一行；真正决定"是否把局域网拉进隧道"的 `include-all-networks` 保持默认 `false`——它的搭档 `include-local-networks` 默认也是 `false`，官方要求必须与 `include-all-networks=true` 同用，所以配置里不再写那一行（写了也是空操作）。
+>
+> **测速与通知**：`proxy-test-url` 用 `http://cp.cloudflare.com/generate_204`，不用 gstatic——测速 URL 不通会把好节点判成不可用、被 `Auto` 直接跳过，而 Cloudflare 的 204 端点可达性最好（国内也能直连）。`internet-test-url` 仍用国内 hicloud，因为 DIRECT 策略的测速必须国内可达。`Auto` 另加了 `no-alert=true`：最优节点变化时不再逐条推送通知，组本身照常自动切换；想恢复通知删掉这一项即可。
+>
+> **广告拦截**：用 `REJECT` + `pre-matching`，在 DNS 与 TCP SYN 阶段就拒掉，不必等连接建好再拒。`REJECT` 自带频率保护（同一域名 30 秒内被拒 50 次后自动升级为 `REJECT-DROP`），既快速失败又不怕重试风暴。**不要改成 `REJECT-DROP`**：它在 DNS 阶段会丢弃查询不回包，应用只能等超时，反而更慢；也不要用 `REJECT-NO-DROP` 当"静默丢弃"——它的语义是"照常拒绝、但不自动升级"，与 mihomo 的 `REJECT-DROP` 并不等价。
+>
+> **QUIC**：用 `[General]` 的 `block-quic = all-proxy`，只挡「走代理」的 QUIC、让应用干净回落 TCP；直连与国内流量照常享受 HTTP/3。官方取值里只有 `all` 会把 DIRECT 也算进去——旧版那条 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT` 排在 CN 段之前，等于把 B 站、微信、国内 CDN 的 QUIC 一起掐掉，已换成开关。需要全量 HTTP/3（含经代理）改成 `always-allow`；要连直连一起拦改成 `all`。
+>
+> **规则求值顺序**：`Reject` / `Ads`（`pre-matching`）→ 私有网络（`Lan.list` 带 `no-resolve`）→ `PROTOCOL,STUN,REJECT` → CN 域名段 → Proxy 域名段 → CN IP 兜底（`ChinaASN` / `ChinaIP` / `GEOIP`，**不带** `no-resolve`）→ `FINAL`。**不要**去掉 `Lan.list` 的 `no-resolve`：它内部有 8 条 `IP-CIDR`，去掉后每个域名请求求值到那里都会先做一次真实 DNS 解析。**也不要**把 CN IP 三层挪到 Proxy 域名段之前：那等于又变回"每个请求都要解析"，而且会把域名表判定该走代理的流量抢成直连。`PROTOCOL,STUN,REJECT` 用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），已挪到私有网络之后让局域网内的 STUN 走直连；FaceTime / 语音会议异常时可先注释它。
+>
+> **iOS / Mac 共用一份**：`read-etc-hosts` 只在 Mac 生效，`allow-wifi-access` / `all-hybrid` 只在 iOS 生效，另一端会直接忽略、不会报错，所以不要为了"两端通用"删掉它们。`icon-url` 需要 Surge Mac 6.5.0+，旧版本只是不显示图标。
 
 > **GeoIP / ASN**：`GEOIP,CN` 使用 `geoip-maxmind-url` 指向的 Loyalsoldier 国家库（经 `gh-proxy.com` 中转）。`ChinaASN`（`IP-ASN`）用的是 Surge **自带**的 GeoLite2 ASN 库，只随 App 更新，配置里没有像 Egern `asn_db_url` 那样的更换入口——这是 Surge 的能力边界，不是漏配。库过旧时部分国内 IP 可能被误走代理，优先升级 Surge。
 
