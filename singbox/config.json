@@ -88,12 +88,29 @@
     ],
     "rules": [
       {
-        "domain_suffix": ["lan", "local"],
+        "domain_suffix": ["lan", "local", "arpa"],
         "action": "route",
         "server": "local"
       },
       {
-        "rule_set": ["Lan", "ChinaDomain", "WeChat", "Bilibili"],
+        "domain_suffix": [
+          "weather.apple.com",
+          "weather-analytics-events.apple.com"
+        ],
+        "action": "route",
+        "server": "cn"
+      },
+      {
+        "rule_set": [
+          "Lan",
+          "Direct",
+          "WeChat",
+          "Bilibili",
+          "AppleCN",
+          "OneDrive",
+          "DownloadCDN_CN",
+          "ChinaDomain"
+        ],
         "action": "route",
         "server": "cn"
       }
@@ -532,10 +549,12 @@
       },
       {
         "domain_suffix": ["lan", "local"],
+        "action": "route",
         "outbound": "direct"
       },
       {
         "rule_set": ["Lan", "Direct"],
+        "action": "route",
         "outbound": "direct"
       },
       {
@@ -545,14 +564,17 @@
       },
       {
         "domain_suffix": ["weather.apple.com", "weather-analytics-events.apple.com"],
+        "action": "route",
         "outbound": "CN"
       },
       {
         "rule_set": ["WeChat", "Bilibili", "AppleCN", "OneDrive", "DownloadCDN_CN", "ChinaDomain"],
+        "action": "route",
         "outbound": "CN"
       },
       {
         "rule_set": ["AI", "OpenAI", "Telegram", "Twitter", "Facebook", "Instagram", "TikTok", "Reddit", "Google", "Github", "Microsoft", "YouTube", "Netflix", "Disney", "HBO", "PrimeVideo", "Emby", "Spotify", "Bahamut", "Steam", "Epic", "EA", "Blizzard", "Nintendo", "Xbox", "UBI", "Game", "Crypto", "TronLink", "PayPal", "Cloudflare", "DownloadCDN_Global", "AppleServers", "ProxyAll"],
+        "action": "route",
         "outbound": "Proxy"
       },
       {
@@ -561,10 +583,12 @@
       },
       {
         "ip_is_private": true,
+        "action": "route",
         "outbound": "direct"
       },
       {
         "rule_set": ["ChinaIP"],
+        "action": "route",
         "outbound": "CN"
       }
     ],

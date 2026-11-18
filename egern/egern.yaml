@@ -5,7 +5,7 @@
 #   - 导入后把你的机场订阅 URL 添加到“机场订阅”策略组，其他策略组会自动复用这些节点。
 #
 # 策略组（5 个）：
-#   - 场景：连上透明代理路由器的 WiFi 时整体 DIRECT，其余网络交给 Proxy；SSID 是占位名，导入后必须替换。
+#   - 场景：连上 YUQI / WiFi2 时整体 DIRECT，其余网络走 Proxy；WiFi2 是可自行修改的模板。
 #   - Proxy：第一个是 Auto，后面直接列出全部订阅节点，可按节点手动选择。
 #   - Auto / CN：自动测速 / 国内直连，命名与 mihomo、Loon 保持一致。
 #   - 机场订阅：隐藏的订阅入口；节点只在这里定义，Proxy 通过 YAML 锚点 *SubURL 复用，占位串只改一处。
@@ -15,7 +15,7 @@
 #   - 第一条是 stun 拒绝，防 WebRTC 泄漏真实 IP；故意用 REJECT 而非 NO-DROP，理由见 README。
 #   - 广告规则走 REJECT-NO-DROP，与 mihomo 的 REJECT-DROP 语义对齐。
 #   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；未命中流量走 场景（在家直连 / 在外走 Proxy）。
+#   - 海外服务与未命中流量都走 场景（在家直连 / 在外走 Proxy）。
 #
 # 模块（16 个，合计声明 31 个 MITM 域名）：
 #   - 分组与排障顺序写在下方 modules 段；证书由 Egern 自己管理，ca_p12 / ca_passphrase 必须留空。
@@ -55,6 +55,7 @@ bypass_tunnel_proxy:                        # 目标级旁路：只放路由级�
 real_ip_domains:                            # 永远返回真实 IP、不走 Fake IP 的域名（局域网域名与时间同步）
   - "*.lan"
   - "*.local"
+  - "*.arpa"
   - "time.*.apple.com"
   - "ntp.*.com"
   - "ntp.*.com.cn"
@@ -82,6 +83,36 @@ dns:
         value: domestic
         update_interval: 86400
     - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Direct.yaml"
+        value: domestic
+        update_interval: 86400
+    - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/WeChat.yaml"
+        value: domestic
+        update_interval: 86400
+    - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Bilibili.yaml"
+        value: domestic
+        update_interval: 86400
+    - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/AppleCN.yaml"
+        value: domestic
+        update_interval: 86400
+    - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/OneDrive.yaml"
+        value: domestic
+        update_interval: 86400
+    - proxy_rule_set:
+        match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/DownloadCDN_CN.yaml"
+        value: domestic
+        update_interval: 86400
+    - domain_suffix:
+        match: weather.apple.com
+        value: domestic
+    - domain_suffix:
+        match: weather-analytics-events.apple.com
+        value: domestic
+    - proxy_rule_set:
         match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/ChinaDomain.yaml"
         value: domestic
         update_interval: 86400
@@ -106,13 +137,12 @@ policy_groups:
 
   # ── 场景 ──
   # 连上透明代理路由器的 WiFi 时全直连（路由器已经翻墙），其他网络才交给 Proxy，避免双重代理。
-  # WiFi1 / WiFi2 是占位名，必须换成路由器的真实 SSID；不确定就整组删掉、把 default 规则改回 policy: Proxy。
-  # 注意：SSID 是精确匹配，公共热点如果正好叫 WiFi1 会被误判成直连，所以不要留着占位名不填。
+  # YUQI 是已配置的路由器 SSID，WiFi2 保留为可按需修改的模板。
   - conditional:
       name: 场景
       rules:
         - ssid:
-            match: WiFi1
+            match: YUQI
             policy: DIRECT
         - ssid:
             match: WiFi2
@@ -250,172 +280,172 @@ rules:
   - rule_set:
       name: AI
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/AI.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: OpenAI
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/OpenAI.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Telegram
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Telegram.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Twitter
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Twitter.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Facebook
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Facebook.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Instagram
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Instagram.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: TikTok
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/TikTok.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Reddit
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Reddit.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Google
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Google.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Github
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Github.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Microsoft
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Microsoft.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: YouTube
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/YouTube.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Netflix
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Netflix.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Disney
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Disney.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: HBO
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/HBO.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: PrimeVideo
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/PrimeVideo.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Emby
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Emby.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Spotify
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Spotify.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Bahamut
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Bahamut.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Steam
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Steam.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Epic
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Epic.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: EA
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/EA.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Blizzard
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Blizzard.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Nintendo
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Nintendo.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Xbox
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Xbox.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: UBI
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/UBI.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Game
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Game.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Crypto
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Crypto.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: TronLink
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/TronLink.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: PayPal
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/PayPal.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: Cloudflare
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Cloudflare.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: DownloadCDN_Global
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/DownloadCDN_Global.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: AppleServers
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/AppleServers.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
   - rule_set:
       name: ProxyAll
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Proxy.yaml"
-      policy: Proxy
+      policy: 场景
       update_interval: 86400
 
   # ── 兜底 ──

@@ -2,7 +2,7 @@
 
 个人代理客户端配置模板仓库。
 
-五份配置共用同一套规则集（Repcz/Tool `X` 分支）、同一套策略组命名（`Proxy` / `Auto` / `CN`，Loon / Surge 多一个 `场景分流`、Egern 多一个 `场景`）和一致的 DNS / QUIC 处理思路；剩下的差异只来自客户端能力边界，逐项列在下面的「五端差异」表里。
+五份配置共用同一套规则集（Repcz/Tool `X` 分支）和基本一致的策略组命名。DNS 与 QUIC 按各客户端能力分别配置，差异列在下面的「五端差异」表里。
 
 ## 目录结构
 
@@ -38,7 +38,7 @@ Egern、Surge 与 sing-box 仓库文件里写的是占位串（`这里填入你�
 | 客户端 | 监听 | 说明 |
 | --- | --- | --- |
 | Mihomo | `7890`（mixed）、`0.0.0.0:1053`（DNS） | `allow-lan: true` + `bind-address: "*"`，局域网内其他设备可用这两个端口，且没有认证 |
-| sing-box | `7890`（mixed）、`127.0.0.1:9090`（面板）、TUN `172.19.0.1/30` | 与 Mihomo 抢同一个 7890，**同一台机器不要同时启用** |
+| sing-box | `0.0.0.0:7890`（mixed）、`127.0.0.1:9090`（面板）、TUN `172.19.0.1/30` | mixed 代理开放给局域网且无认证；与 Mihomo 抢同一个 7890，**同一台机器不要同时启用** |
 | Egern | `3080`（http）、`3090`（socks） | 只监听本机，`allow_external_connections: false` |
 | Loon | 无固定端口 | 走 Network Extension 隧道 |
 | Surge | 无固定端口 | 走 Network Extension / Enhanced Mode 隧道；`allow-wifi-access = false`，不向局域网共享代理 |
@@ -78,7 +78,7 @@ Sub-Store 拉取模板这一步例外：请用 GitHub 原始地址，`gh-proxy.c
 | --- | --- | --- | --- | --- | --- |
 | 策略组 | `Proxy` / `Auto` / `CN` | 同 + `场景分流` | `场景` / `Proxy` / `Auto` / `CN`（+ 隐藏的 `机场订阅`） | 同 + `场景分流`（+ 隐藏的 `机场订阅`） | `Proxy` / `Auto` / `CN` |
 | 广告拦截 | `REJECT-DROP` | `REJECT` | `REJECT-NO-DROP` | `REJECT` + `pre-matching`（DNS / SYN 阶段即拒，命中风暴时自动升级 `REJECT-DROP`） | `action: reject` |
-| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | `block-quic = all-proxy` 开关（不是规则；只挡走代理的 QUIC，直连与国内保留 HTTP/3） | 规则 `{"network":"udp","port":443}` |
+| QUIC 拦截 | 规则 `AND,((NETWORK,udp),(DST-PORT,443))` | 规则 `AND,((PROTOCOL,UDP),(DEST-PORT,443))` | `block_quic: true` 开关（不是规则） | `block-quic = all` 开关（不是规则；拦截所有 UDP/443） | 规则 `{"network":"udp","port":443}` |
 | 国内判定 | 四层 | 四层 | 四层 | 四层（ASN 库随 App 更新，配置无法更换） | 三层（无 ASN） |
 | `CN` 组可选项 | `DIRECT` / `Proxy` / `REJECT` | 同 | 同 | 同 | `direct` / `Proxy` |
 | 规则格式 | classical text | text | yaml | text | srs |
@@ -98,7 +98,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **策略组**：`Proxy` 手动选择（内含 `Auto` 与全部订阅节点）、`Auto` 自动测速（300 秒一轮、容差 50ms）、`CN` 默认 `DIRECT`（可切 `Proxy` / `REJECT`）。节点由 Sub-Store 注入，`filter` 正则会把「群 / 剩余流量 / 到期 / 官网」这类机场信息节点剔除；广告规则统一走 `REJECT-DROP`（丢弃不回 RST，减少被探测）。
 
-> **DNS / hosts**：`fake-ip` 过滤为 `rule` 模式，只对明确标记 `real-ip` 的域名下发真实 IP；海外域名走 `#Proxy` 的 Cloudflare/Google DoH，国内域名与节点域名走国内 DoH（223.5.5.5 / doh.pub）。内网域名（`rule-set:Lan`）交给 `system` 解析，路由器/NAS 域名才能通。配置里同时关了 `use-system-hosts` 和 `use-hosts`：前者忽略本机 hosts，后者忽略配置内的 `hosts:` 段——所以**现在往配置里加 `hosts:` 段不会生效**。要恢复静态映射，需要把 `use-hosts` 改回 `true` 并新增 `hosts:` 段；要走本机 hosts 则需同时把 `use-system-hosts` 改回 `true`；也可以不改开关，直接用 `nameserver-policy` 或 `DOMAIN` 规则解决。
+> **DNS / hosts**：`fake-ip` 过滤为 `rule` 模式，只对局域网、NTP 和 `Direct` 规则集明确标记 `real-ip` 的域名下发真实 IP；Apple 中国区和中国域名仍使用 Fake IP。海外域名走 `#Proxy` 的 Cloudflare/Google DoH，`Direct`、微信、Bilibili、AppleCN、OneDrive、国内下载 CDN 和 ChinaDomain 走国内 DoH（223.5.5.5 / doh.pub），使 DNS 出口与 CN/直连规则一致。内网域名（`rule-set:Lan`）交给 `system` 解析，路由器/NAS 域名才能通。配置里同时关了 `use-system-hosts` 和 `use-hosts`：前者忽略本机 hosts，后者忽略配置内的 `hosts:` 段——所以**现在往配置里加 `hosts:` 段不会生效**。要恢复静态映射，需要把 `use-hosts` 改回 `true` 并新增 `hosts:` 段；要走本机 hosts 则需同时把 `use-system-hosts` 改回 `true`；也可以不改开关，直接用 `nameserver-policy` 或 `DOMAIN` 规则解决。
 
 > **DNS 端口**：内置 DNS 监听 `0.0.0.0:1053`（内核默认端口）。53 端口由 TUN 的 `dns-hijack` 接管，因此不占 53，不会和 Windows ICS / Docker 抢端口。但要注意 `allow-lan: true` 下 `0.0.0.0:1053` 对局域网是开放的（同样开放的还有 `7890`，且都不带认证）；不需要给局域网用时，把 `listen` 改成 `127.0.0.1:1053`。
 
@@ -124,7 +124,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **规则求值顺序**：Loon 是「本地 `[Rule]` → `[Remote Rule]`」，全部未命中时才回本地执行 `FINAL`；本地规则优先于订阅规则。所以 `[Rule]` 里的 APNs 段和 QUIC 拦截能盖住订阅里的同名判断，`FINAL,场景分流` 放在 `[Rule]` 末尾是正确位置——**不要**挪到 `[Remote Rule]` 后面，那样会让远程规则提前终止。
 
-> **Fake IP 例外**：`real-ip` 除 Apple 推送域名外，还包含 `*.lan` / `*.local` / `*.arpa`，否则路由器、NAS、打印机等局域网域名会被解析成 Fake IP（其余三端模板都做了同样的排除）。
+> **Fake IP 例外**：Loon / Egern 显式保留 Apple 推送域名与 `*.lan` / `*.local` / `*.arpa` 的真实 IP；Mihomo 只对局域网、NTP 与 Direct 规则集保留真实 IP，Apple 中国区和中国域名仍使用 Fake IP，减少真实地址例外带来的兼容性差异。
 
 > **QUIC 拦截**：本地规则里有 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT`，掐掉 QUIC 让浏览器回落 TCP（与其余三端同一思路）。Loon 的拦截写在本地 `[Rule]` 里，优先级高于订阅规则，但局域网流量已被 `bypass-tun` 排除在隧道外，实际效果与其他三端一致。若某些应用必须用 HTTP/3，注释掉这一条即可。
 
@@ -136,7 +136,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/mihomo/mihomo.yam
 
 > **去广告插件**：`[Plugin]` 里按类别分了九组——系统与基础、Apple/天气、微信、社交与社区、电商与生活服务、出行、影音、阅读、网盘/浏览器/搜索，共 43 个 kelee 插件（总 46 条，含 3 个非 kelee）。它们都会把自家域名合并进 `[Mitm]`，一次全开等于解密范围大幅扩张，首次「一键更新所有外部资源」也会明显变慢；某个 App 出现证书错误或网络异常时，先关掉它对应的插件再排查。微信那三个（小程序去广告 / 外链解锁 / 公众号去广告）会改写同一批响应，微信报网络异常就先关它们。番茄小说两套去广告都保留在阅读组，默认启用 `fanqie.plugin`（番茄三系去广告），kelee 的 `DragonRead` 设为禁用——两套会改写同一批响应，同时开只会互相干扰；想换另一套就把这两条的 `enabled` 对调。
 
-> **WiFi 分流（可选）**：`场景分流` 已把 `YUQI`（透明代理路由器）配成直连，`[Host]` 里 `ssid:YUQI = server:192.168.77.1` 指定了它在连上该 WiFi 时用路由器自身解析。**换成别的路由器时，`YUQI` / `192.168.77.1` 两个值都要改；不用透明代理路由器就把 `"YUQI"=DIRECT` / `"WiFi2"=DIRECT` 和 `[Host]` 里对应两行一起删掉**，否则遇到同名 SSID（公共热点也叫这名）会被误判成直连。`WiFi2` 仍是占位名，没用第二个路由器就删掉。
+> **WiFi 分流（可选）**：`场景分流` 已把 `YUQI`（透明代理路由器）配成直连，`[Host]` 里 `ssid:YUQI = server:192.168.77.1` 指定了它在连上该 WiFi 时用路由器自身解析。`WiFi2` 保留为第二个路由器的模板，需要时手动改名并填写对应路由器 IP；不用第二个路由器时可以保留模板不动。
 >
 > 有多个透明代理路由器 WiFi 时：
 > - `[Proxy Group]` 的 `场景分流` 组里继续追加 `"SSID"=DIRECT`（如 `"WiFi3"=DIRECT`）；
@@ -165,7 +165,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 
 2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
 3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
-4. 需要透明代理路由器时，打开 [策略组] → `场景分流`，确认 `"YUQI"` / `"WiFi2"` 是路由器的真实 SSID（与 Loon 配置一致）；已改名或不用就把对应项删掉，否则遇到同名公共热点会把流量误判成直连。同时把 `[SSID Setting]` 里的 `SSID:YUQI dns-server=192.168.77.1` 改成你路由器的实际 IP——连上该 WiFi 时 DNS 交给路由器解析（路由器的 DNS 分流 / 广告拦截才会生效），`WiFi2` 后面已留一行注释模板，改好 IP 再取消注释。不用场景分流时，把 `[Rule]` 里指向 `场景分流` 的策略和末条 `FINAL` 改成 `Proxy` 即可。
+4. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
 5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
 
 > **DNS 防泄漏**：配置只写 IP 形式的国内 DoH（`223.5.5.5` / `1.12.12.12` / `223.6.6.6`），**故意不写明文 `dns-server`**，避免 DoH 主机名还要先走一遍明文 bootstrap；并用 `hijack-dns = *:53` 把应用自己发起的明文 DNS 查询交给 Surge。`encrypted-dns-follow-outbound-mode = false`，因为这三条 DoH 国内可直连，不必再经 `Proxy`，也可避免和节点解析形成循环依赖（代价是 `PROTOCOL,DOH` / `DOQ` 这类规则不会生效，加密 DNS 查询根本不进规则系统）。连上透明代理路由器时例外：`[SSID Setting]` 里 `SSID:YUQI dns-server=192.168.77.1,encrypted-dns-server=off` 会把该网络的 DNS 交给路由器，路由器的 DNS 分流 / 广告拦截才会生效；全局已配加密 DNS，所以 `encrypted-dns-server=off` 必须显式写，否则切不回传统 DNS。
@@ -180,7 +180,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 >
 > **广告拦截**：用 `REJECT` + `pre-matching`，在 DNS 与 TCP SYN 阶段就拒掉，不必等连接建好再拒。`REJECT` 自带频率保护（同一域名 30 秒内被拒 50 次后自动升级为 `REJECT-DROP`），既快速失败又不怕重试风暴。**不要改成 `REJECT-DROP`**：它在 DNS 阶段会丢弃查询不回包，应用只能等超时，反而更慢；也不要用 `REJECT-NO-DROP` 当"静默丢弃"——它的语义是"照常拒绝、但不自动升级"，与 mihomo 的 `REJECT-DROP` 并不等价。
 >
-> **QUIC**：用 `[General]` 的 `block-quic = all-proxy`，只挡「走代理」的 QUIC、让应用干净回落 TCP；直连与国内流量照常享受 HTTP/3。官方取值里只有 `all` 会把 DIRECT 也算进去——旧版那条 `AND,((PROTOCOL,UDP),(DEST-PORT,443)),REJECT` 排在 CN 段之前，等于把 B 站、微信、国内 CDN 的 QUIC 一起掐掉，已换成开关。需要全量 HTTP/3（含经代理）改成 `always-allow`；要连直连一起拦改成 `all`。
+> **QUIC**：用 `[General]` 的 `block-quic = all` 拦截所有 UDP/443，让浏览器和应用回落 TCP，与 Mihomo、Loon、Egern、sing-box 的全局拦截保持一致。需要 HTTP/3 时改成 `always-allow`。
 >
 > **规则求值顺序**：`Reject` / `Ads`（`pre-matching`）→ 私有网络（`Lan.list` 带 `no-resolve`）→ `PROTOCOL,STUN,REJECT` → CN 域名段 → Proxy 域名段 → CN IP 兜底（`ChinaASN` / `ChinaIP` / `GEOIP`，**不带** `no-resolve`）→ `FINAL`。**不要**去掉 `Lan.list` 的 `no-resolve`：它内部有 8 条 `IP-CIDR`，去掉后每个域名请求求值到那里都会先做一次真实 DNS 解析。**也不要**把 CN IP 三层挪到 Proxy 域名段之前：那等于又变回"每个请求都要解析"，而且会把域名表判定该走代理的流量抢成直连。`PROTOCOL,STUN,REJECT` 用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），已挪到私有网络之后让局域网内的 STUN 走直连；FaceTime / 语音会议异常时可先注释它。
 >
@@ -202,17 +202,17 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 3. 导入完成后，切换并使用 `egern` 配置。
 4. 打开 [策略组] -> `机场订阅`，把 `urls` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存（该组已从旧的 `external` 写法迁移为官方推荐的 `select + urls`，两者等价）。**只需要改这一处**：`Proxy` 组用的是同一个 YAML 锚点 `*SubURL`，会自动跟着变。
-5. 打开 [策略组] -> `场景`，把 `WiFi1` / `WiFi2` 换成透明代理路由器的真实 SSID（详见下文「场景分流」；不用透明代理路由器就把这个组删掉，并把 `rules` 末尾 `default` 的 `policy` 改回 `Proxy`）。
+5. 打开 [策略组] -> `场景`。`YUQI` 已作为默认透明代理路由器 SSID，`WiFi2` 保留为第二个路由器的模板，需要时可手动改名；不用场景分流时，可把 `rules` 末尾 `default` 的 `policy` 改回 `Proxy`。
 6. 回到策略组页面更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。
 7. 回到仪表界面打开 Egern 开关即可。
 
-> **DNS 注意**：`dns.proxy_nameservers` 的连接按官方语义是**强制直连**、且会绕过 `forward` 规则，所以必须填国内可达的 DoH（当前为 223.5.5.5 / 1.12.12.12）。若填 `8.8.8.8`、`1.1.1.1`，在国内网络下节点域名解析会失败，所有以域名下发的节点会直接不可用。`bootstrap`（223.5.5.5 / 119.29.29.29）只用于解析 DoH 主机名，同样必须是国内可达的地址。
+> **DNS 注意**：`dns.proxy_nameservers` 的连接按官方语义是**强制直连**、且会绕过 `forward` 规则，所以必须填国内可达的 DoH（当前为 223.5.5.5 / 1.12.12.12）。若填 `8.8.8.8`、`1.1.1.1`，在国内网络下节点域名解析会失败，所有以域名下发的节点会直接不可用。`bootstrap`（223.5.5.5 / 119.29.29.29）只用于解析 DoH 主机名，同样必须是国内可达的地址。`forward` 已让 Lan、Direct、WeChat、Bilibili、AppleCN、OneDrive、DownloadCDN_CN 和 ChinaDomain 使用国内 DNS，其他域名经 Proxy 使用海外 DNS。
 
 > **运行模式与端口**：`vif_only: true` 表示只走 VIF（TUN）模式，不接管系统代理；`http_port: 3080` / `socks_port: 3090` 只监听本机（`allow_external_connections: false`）；`compat_route: true` 打开兼容路由，减少路由冲突。
 
 > **Proxy 组：Auto 在前，节点直接跟在后**：`Proxy` 里只有 `Auto` 一个静态子策略，之后就是全部订阅节点（按名称去重），所以手动挑单个节点只需点开 `Proxy` 一次，不用再进一层汇总组。顺序不是猜的——官方语义是「`urls` 与 `policies` 混用时，订阅节点排在静态子策略之后」。这条规则是**单向的**：静态项只能排在节点前面，**没法排到节点后面**，所以「`Auto` → 节点 → `DIRECT`/`REJECT`」这种顺序在 Egern 里写不出来。当前取舍是让节点紧跟 `Auto`，直连 / 拒绝改由 `CN` 组切换（那里仍是 `DIRECT` / `Proxy` / `REJECT` 三项）；想把它们加回来就在 `policies` 里补 `- DIRECT` / `- REJECT`，位置会是 `Auto` 之后、节点之前。这里**故意没有用 `flatten`**：文档说 flatten 会展开「所有」嵌套策略组，`Auto` 会被一起展开、从列表里消失，正好和「第一个是 Auto」冲突。
 
-> **场景分流（SSID 直连）**：`场景` 是 `conditional` 组——连上 `WiFi1` / `WiFi2` 时整体走 `DIRECT`，其他网络走 `Proxy`，而 `rules` 末尾的 `default` 指向它，于是「在家交给路由器、出门自己扛」变成一次开关级切换。两个 SSID 都是**占位名，必须替换**：SSID 是精确匹配，留着 `WiFi1` 不但不生效，遇到同名公共热点还会把流量误判成直连（Loon 端 `[Proxy Group]` 里的同名占位有一模一样的坑）。这一步依赖 `close_connections_on_policy_change: true`——没有它，切到 `DIRECT` 之后旧长连接仍会继续走代理节点。
+> **场景分流（SSID 直连）**：`场景` 是 `conditional` 组，连上 `YUQI` 或模板 SSID `WiFi2` 时整体走 `DIRECT`，其他网络走 `Proxy`。国内与局域网规则仍使用 `DIRECT` / `CN`，所有海外分类规则以及兜底规则都指向 `场景`，因此连上指定 Wi-Fi 时海外分类流量也交给路由器，其他网络才走代理节点。`close_connections_on_policy_change: true` 会在策略切换时断开旧连接，使切换及时生效。
 
 > **局域网排除**：分两层。`vif_excluded_routes` 是**路由级**（只收 CIDR，这些网段压根不进 VIF 路由表），覆盖 `127/8`、`169.254/16`、`100.64/10`、`10/8`、`172.16/12`、`192.168/16`；`bypass_tunnel_proxy` 是**目标级**（域名 + CIDR），只留 `*.local` / `*.lan` / `localhost` 这类路由级表达不了的。当前 `include_all_networks: true` 接管全部网络，这两层是局域网设备不被抓进隧道的唯一保障——访问 `192.168.10.1`、NAS、打印机异常时先查这里。同一个 CIDR 不要同时写进两处：重复声明不报错，但会让人误判到底哪一层在生效。
 
@@ -252,9 +252,9 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 订阅首次加载使用 `provider-download` 直连以避免与 `Proxy` 策略组形成循环依赖；规则集下载使用 `download` 并通过 `Proxy`。请确保订阅地址可直连访问，并在启动前将示例地址替换为真实订阅链接。
 
-配置使用 reF1nd 的并发 DNS 组、Provider HTTP 客户端和 `resolve.match_only`：先匹配域名规则，解析后再匹配 IP 规则，同时保留原始域名用于实际连接。`default_domain_resolver: cn` 决定未被 DNS 规则命中的域名走国内 DoH 解析，只有明确要出海的域名才交给 `remote`（8.8.8.8 / 1.1.1.1，经 `Proxy`）。
+配置使用 reF1nd 的并发 DNS 组、Provider HTTP 客户端和 `resolve.match_only`：先匹配域名规则，解析后再匹配 IP 规则，同时保留原始域名用于实际连接。`default_domain_resolver: cn` 决定未被 DNS 规则命中的域名走国内 DoH 解析；DNS rule-set 与 CN / 直连分流一致，只有海外分类规则命中的域名才交给 `remote`（8.8.8.8 / 1.1.1.1，经 `Proxy`）。
 
-TUN 入站已启用自动路由和严格路由（`auto_route` / `strict_route`），地址为 `172.19.0.1/30`、接口名 `sing-box`；启动客户端时请授予 TUN/管理员权限，否则系统流量不会被接管。`mixed` 入站监听 `7890` 但 `set_system_proxy: false`，即不自动改系统代理，需要时手动开或只用 TUN——注意这个端口和 Mihomo 的 `mixed-port` 相同，两个客户端不能同时运行。
+TUN 入站已启用自动路由和严格路由（`auto_route` / `strict_route`），地址为 `172.19.0.1/30`、接口名 `sing-box`；启动客户端时请授予 TUN/管理员权限，否则系统流量不会被接管。`mixed` 入站监听 `0.0.0.0:7890` 且无认证，局域网设备可连接；`set_system_proxy: false` 表示不自动改系统代理，需要时手动开或只用 TUN。配置没有 Wi-Fi 分流，端口和 Mihomo 的 `mixed-port` 相同，两个客户端不能同时运行。
 
 QUIC 拦截与其他三端一致：规则里有一条 `{"network":"udp","port":443,"action":"reject"}`（位于私网直连规则之后），让浏览器回落到 TCP。不需要可整条删掉。Egern 走的是 `block_quic` 开关，不是规则。
 
