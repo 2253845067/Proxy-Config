@@ -172,7 +172,9 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 >
 > **DNS 限制**（相对 mihomo）：Surge 没有 `nameserver-policy`，不能把海外域名的 DoH 经 `Proxy` 出境，因此这里采用和 Loon 相同的思路——全程走国内加密 DNS，而不是 mihomo 那套「国内走 223.5.5.5、海外走 1.1.1.1#Proxy」。真要给个别域名换解析器，Surge 的出口是 `[Host]` 的 `server:` 映射，例如 `example.com = server:https://1.1.1.1/dns-query`（只对写死的域名生效，不是按规则分流）。加密 DNS 失败时 Surge 仍可能回落到系统 DNS（与 Loon 类似）；若必须留明文兜底，可取消配置里 `dns-server` 那一行的注释。另外 Surge 不是 mihomo 那种可精细控制的 fake-ip 模式，只用 `always-real-ip` 保证局域网 / Apple 等域名拿到真实 IP；`read-etc-hosts = false`，本机 hosts 不会改解析结果。
 
-> **其他关键项**：`udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`ipv6 = false` + `ipv6-vif = auto`。局域网流量由 `skip-proxy` 与 `[Rule]` 的私网规则兜住，`skip-proxy` 已连带写上 IPv6 的 `fc00::/7` / `fe80::/10`——现在 `ipv6 = false` 用不上，将来开 IPv6 时不用再改这一行；真正决定"是否把局域网拉进隧道"的 `include-all-networks` 保持默认 `false`——它的搭档 `include-local-networks` 默认也是 `false`，官方要求必须与 `include-all-networks=true` 同用，所以配置里不再写那一行（写了也是空操作）。
+> **其他关键项**：`udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`ipv6 = false` + `ipv6-vif = auto`。局域网流量由 `skip-proxy` 与 `[Rule]` 的私网规则兜住，`skip-proxy` 已连带写上 IPv6 的 `fc00::/7` / `fe80::/10`——现在 `ipv6 = false` 用不上，将来开 IPv6 时不用再改这一行。为满足 APNs 接管要求，iOS 配置开启了 `include-all-networks`；`include-local-networks` 仍保持默认关闭，因此不会额外把发往局域网的请求纳入 Surge VIF。
+>
+> **APNs 推送**：iOS 配置启用了 `include-all-networks = true` 与 `include-apns = true`，否则 Surge VIF 不会接管 APNs。APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 网段放在 IP 兜底区，避免过早触发 DNS。`include-all-networks` 会扩大隧道接管范围，官方提示可能影响 AirDrop、Xcode 调试和 USB Dashboard；Mac 会忽略这两个 iOS 选项。若不需要代理 APNs，可关闭 `include-apns` 并移除对应规则；若保留 `include-apns`，`include-all-networks` 也必须保持开启。
 >
 > **测速与通知**：`proxy-test-url` 用 `http://cp.cloudflare.com/generate_204`，不用 gstatic——测速 URL 不通会把好节点判成不可用、被 `Auto` 直接跳过，而 Cloudflare 的 204 端点可达性最好（国内也能直连）。`internet-test-url` 仍用国内 hicloud，因为 DIRECT 策略的测速必须国内可达。`Auto` 另加了 `no-alert=true`：最优节点变化时不再逐条推送通知，组本身照常自动切换；想恢复通知删掉这一项即可。
 >
