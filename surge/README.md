@@ -12,13 +12,15 @@
 https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-也可在已安装 Surge 的设备上用一键导入（把配置 URL 交给 Surge 打开）：
+也可在已安装 Surge 的设备上直接点下面的链接，把配置 URL 交给 Surge 打开并导入（走 `gh-proxy.com` 镜像）：
 
-```text
-surge:///install-config?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf
-```
+**[→ 一键导入 surge.conf](surge:///install-config?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf)**
 
-镜像打不开时，把上面两处的 `https://gh-proxy.com/` 前缀去掉，改用 GitHub 原始地址：
+镜像打不开时，把上面地址里的 `https://gh-proxy.com/` 前缀去掉，改用 GitHub 原始地址：
+
+**[→ 一键导入 surge.conf（直连 GitHub）](surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf)**
+
+手动导入时填的原始配置地址仍可用：
 
 ```text
 https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
@@ -97,4 +99,110 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 
 ## 本配置不含模块 / MITM 证书
 
-没有移植 Loon 插件或 Egern 模块，`[Proxy]`、证书相关字段都是空的。需要去广告脚本或 MITM 时，在客户端自行添加模块，不要把 `ca-p12` / 订阅写回这个仓库。
+没有移植 Loon 插件或 Egern 模块，`[Proxy]`、证书相关字段都是空的。需要去广告脚本或 MITM 时，在客户端自行添加模块（对应关系见下面的[模块对照表](#模块对照表loon-插件--surge-模块)），不要把 `ca-p12` / 订阅写回这个仓库。
+
+## 模块对照表（Loon 插件 → Surge 模块）
+
+本配置本身**不含模块**。下面这张表是把 `loon/loon.lcf` 里启用的插件逐个对上 Surge 模块的结果——这些 Loon 插件绝大部分来自 [kelee.one](https://kelee.one)，而 [surge.qingr.moe](https://surge.qingr.moe)（[LoonKissSurge](https://github.com/QingRex/LoonKissSurge) 项目）做的就是把这套 Loon 插件批量转成 Surge 模块，所以 42 个启用插件里有 40 个能一一对应。
+
+有 5 行不是 LoonKissSurge 的转换结果，需要单独说明：**天气**那两条直接引用上游 [NSRingo/WeatherKit](https://github.com/NSRingo/WeatherKit) 的官方模块（LoonKissSurge 里的转换版是半年前的快照，版本旧、参数也少），**YouTube** 那两条换成上游原生 sgmodule 和它衍生出来的 Maasea 原版（转换版功能不全）。这两组各自都是「二选一」，不能全装，详见表格后的[天气模块](#天气模块不走-loonkisssurge用上游官方地址)与 [YouTube 模块](#youtube-模块gholts-与-maasea-二选一)小节。
+
+点「模块」列可以直接跳转 Surge 安装远程模块；「对应 Loon 插件」列用来和 `loon/loon.lcf` 逐条核对。
+
+**安装顺序**：先装表格最上面两条标了「前置依赖」的模块，再装其他的。缺了它们，后面那些去广告模块可能整体不生效。
+
+| 分类 | 模块（点击安装） | 对应 Loon 插件 | 备注 |
+| --- | --- | --- | --- |
+| 系统基础 | [拦截HTTPDNS](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E6%258B%25A6%25E6%2588%25AAHTTPDNS.sgmodule) | `Block_HTTPDNS` | 前置依赖 |
+| 系统基础 | [广告平台拦截器](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25B9%25BF%25E5%2591%258A%25E5%25B9%25B3%25E5%258F%25B0%25E6%258B%25A6%25E6%2588%25AA%25E5%2599%25A8.sgmodule) | `BlockAdvertisers` | 前置依赖 |
+| 系统基础 | [DNS防泄露](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FDNS%25E9%2598%25B2%25E6%25B3%2584%25E9%259C%25B2.sgmodule) | `Prevent_DNS_Leaks` | ⚠️ 转换后为**空模块**，装了不生效，见下方说明 |
+| 系统基础 | [快捷搜索](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25BF%25AB%25E6%258D%25B7%25E6%2590%259C%25E7%25B4%25A2.sgmodule) | `QuickSearch` |  |
+| 系统基础 | [BoxJs](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FOfficial%2F%25E2%25AD%2590%25EF%25B8%258F%2520BoxJs.official.sgmodule) | `BoxJs` |  |
+| 系统基础 | [Sub-Store](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FOfficial%2F%25E2%25AD%2590%25EF%25B8%258F%2520Sub-Store.official.sgmodule) | `Sub-Store` |  |
+| 系统基础 | [Script Hub](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FOfficial%2F%25E2%25AD%2590%25EF%25B8%258F%2520Script%2520Hub.official.sgmodule) | `Script-Hub` |  |
+| Apple | [iRingo WeatherKit（Rewrite）](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fgithub.com%2FNSRingo%2FWeatherKit%2Fraw%2Fmain%2Fmodules%2FiRingo.WeatherKit.Rewrite.sgmodule) | `iRingo.WeatherKit.Rewrite` | **当前用这个**；纯 URL 重写，不需要 token |
+| Apple | [iRingo WeatherKit（脚本版）](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fgithub.com%2FNSRingo%2FWeatherKit%2Freleases%2Flatest%2Fdownload%2FiRingo.WeatherKit.sgmodule) | `iRingo.WeatherKit` | 备选；可接彩云 / 和风 / WAQI，需要 token |
+| 微信 | [微信小程序去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25B0%258F%25E7%25A8%258B%25E5%25BA%258F%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `WexinMiniPrograms_Remove_ads` |  |
+| 微信 | [微信公众号去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%2585%25AC%25E4%25BC%2597%25E5%258F%25B7%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Weixin_Official_Accounts_remove_ads` |  |
+| 微信 | [微信外部链接解锁](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25BE%25AE%25E4%25BF%25A1%25E5%25A4%2596%25E9%2583%25A8%25E9%2593%25BE%25E6%258E%25A5%25E8%25A7%25A3%25E9%2594%2581.sgmodule) | `Weixin_external_links_unlock` |  |
+| 社交 | [小红书去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25B0%258F%25E7%25BA%25A2%25E4%25B9%25A6%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `RedPaper_remove_ads` |  |
+| 社交 | [Soul 去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FSoul%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Soul_remove_ads` |  |
+| 社交 | [贴吧去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E8%25B4%25B4%25E5%2590%25A7%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Tieba_remove_ads` |  |
+| 社交 | [酷安去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E9%2585%25B7%25E5%25AE%2589%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `CoolApk_remove_ads` |  |
+| 电商生活 | [淘宝去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E6%25B7%2598%25E5%25AE%259D%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Taobao_remove_ads` |  |
+| 电商生活 | [拼多多去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E6%258B%25BC%25E5%25A4%259A%25E5%25A4%259A%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `PinDuoDuo_remove_ads` |  |
+| 电商生活 | [京东去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25BA%25AC%25E4%25B8%259C%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `JD_remove_ads` |  |
+| 电商生活 | [京东外卖去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25BA%25AC%25E4%25B8%259C%25E5%25A4%2596%25E5%258D%2596%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `JDWaimai_remove_ads` |  |
+| 电商生活 | [京东比价](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25BA%25AC%25E4%25B8%259C%25E6%25AF%2594%25E4%25BB%25B7.sgmodule) | `JD_Price` |  |
+| 电商生活 | [闲鱼去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E9%2597%25B2%25E9%25B1%25BC%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `FleaMarket_remove_ads` |  |
+| 电商生活 | [什么值得买去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25BB%2580%25E4%25B9%2588%25E5%2580%25BC%25E5%25BE%2597%25E4%25B9%25B0%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `smzdm_remove_ads` |  |
+| 电商生活 | [菜鸟去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E8%258F%259C%25E9%25B8%259F%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Cainiao_remove_ads` |  |
+| 出行 | [高德地图去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E9%25AB%2598%25E5%25BE%25B7%25E5%259C%25B0%25E5%259B%25BE%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Amap_remove_ads` |  |
+| 出行 | [滴滴出行去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E6%25BB%25B4%25E6%25BB%25B4%25E5%2587%25BA%25E8%25A1%258C%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `DiDi_remove_ads` |  |
+| 出行 | [航旅纵横去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E8%2588%25AA%25E6%2597%2585%25E7%25BA%25B5%25E6%25A8%25AA%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Umetrip_remove_ads` |  |
+| 出行 | [12306 去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F12306%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `12306_remove_ads` |  |
+| 影音 | [网易云音乐去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E7%25BD%2591%25E6%2598%2593%25E4%25BA%2591%25E9%259F%25B3%25E4%25B9%2590%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `NeteaseCloudMusic_remove_ads` |  |
+| 影音 | [汽水音乐去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E6%25B1%25BD%25E6%25B0%25B4%25E9%259F%25B3%25E4%25B9%2590%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `SodaMusic_remove_ads` |  |
+| 影音 | [哔哩哔哩去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%2593%2594%25E5%2593%25A9%25E5%2593%2594%25E5%2593%25A9%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `Bilibili_remove_ads` |  |
+| 影音 | [YouTube Enhance（gholts）](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2Fgholts%2Fsurge%2Frefs%2Fheads%2Fmain%2Fmodules%2Fyoutube-enhance.sgmodule) | `YouTube_remove_ads` | **当前用这个**；去广告 + 后台/PiP/4x/自动高清，**仅 iOS** |
+| 影音 | [Youtube (Music) Enhance（Maasea）](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FOfficial%2FYouTube%E5%8E%BB%E5%B9%BF%E5%91%8A%5BMaasea%5D.official.sgmodule) | `YouTube_remove_ads` | 备选；iOS / Mac 都能跑，开销更轻，与上面二选一 |
+| 影音 | [YouTube 双字幕](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2FOfficial%2F%25F0%259F%258D%259F%2520DualSubsYouTube.official.sgmodule) | `YouTubeSubtitlesTranslation` |  |
+| 阅读 | [书旗小说去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25B9%25A6%25E6%2597%2597%25E5%25B0%258F%25E8%25AF%25B4%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `ShuQiCenterReader_remove_ads` |  |
+| 阅读 | [七猫小说去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25B8%2583%25E7%258C%25AB%25E5%25B0%258F%25E8%25AF%25B4%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `SevenCat_remove_ads` |  |
+| 阅读 | [得间小说去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25BE%2597%25E9%2597%25B4%25E5%25B0%258F%25E8%25AF%25B4%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `iReaderDejian_remove_ads` |  |
+| 阅读 | [番茄小说去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E7%2595%25AA%25E8%258C%2584%25E5%25B0%258F%25E8%25AF%25B4%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `fanqie.plugin` | 非同一第三方版本 |
+| 网盘浏览器 | [百度网盘去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E7%2599%25BE%25E5%25BA%25A6%25E7%25BD%2591%25E7%259B%2598%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `BaiduNetDisk_remove_ads` |  |
+| 网盘浏览器 | [123 云盘去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F123%25E4%25BA%2591%25E7%259B%2598%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `123NetWorkDisk_remove_ads` |  |
+| 网盘浏览器 | [中国移动云盘去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E4%25B8%25AD%25E5%259B%25BD%25E7%25A7%25BB%25E5%258A%25A8%25E4%25BA%2591%25E7%259B%2598%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `mobileClouds_remove_ads` |  |
+| 网盘浏览器 | [夸克去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25A4%25B8%25E5%2585%258B%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `QuarkBrowser_remove_ads` |  |
+| 网盘浏览器 | [夸克扫描王去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E5%25A4%25B8%25E5%2585%258B%25E6%2589%25AB%25E6%258F%258F%25E7%258E%258B%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `QuarkScanking_remove_ads` |  |
+| 网盘浏览器 | [百度搜索网页去广告](surge:///install-module?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2FQingRex%2FLoonKissSurge%2Fmain%2FSurge%2F%25E7%2599%25BE%25E5%25BA%25A6%25E6%2590%259C%25E7%25B4%25A2%25E7%25BD%2591%25E9%25A1%25B5%25E5%258E%25BB%25E5%25B9%25BF%25E5%2591%258A.sgmodule) | `BaiduSearchWebpage_remove_ads` |  |
+
+模块地址前缀是 `https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/main/Surge/`，镜像失效时把前缀去掉、改用 GitHub 原始地址 `https://raw.githubusercontent.com/QingRex/LoonKissSurge/main/Surge/`。
+
+**`DNS防泄露` 是唯一一个转换后为空的模块**：主目录和 `Beta/` 两个版本下载下来都只有 `#!name` / `#!desc` 之类的元数据，没有任何 `[Rule]` / `[URL Rewrite]` / `[Script]` 段，装了等于没装（原插件写的是 Loon 自己那套 DNS 参数，转换器映射不到 Surge）。Surge 这边的防泄漏本来就由 `surge.conf` 自己做——只写 IP 形式的国内 DoH、不写明文 `dns-server`、`hijack-dns = *:53`，见上面的 [DNS](#dns) 节，不需要模块配合。这一条留着只为和 `loon/loon.lcf` 对齐，嫌碍事可以不装。
+
+
+### 天气模块（不走 LoonKissSurge，用上游官方地址）
+
+表格里 Apple 那两条不是 LoonKissSurge 的转换结果，直接引用上游 [NSRingo/WeatherKit](https://github.com/NSRingo/WeatherKit) 的官方 Surge 模块，和 `loon/loon.lcf` 里那对 iRingo 插件一一对应：
+
+- **Rewrite 版**（当前使用，对应 Loon 里启用的 `iRingo.WeatherKit.Rewrite.lpx`）：
+  `https://github.com/NSRingo/WeatherKit/raw/main/modules/iRingo.WeatherKit.Rewrite.sgmodule`
+- **脚本版**（备选，对应 Loon 里禁用的 `iRingo.WeatherKit.lpx`）：
+  `https://github.com/NSRingo/WeatherKit/releases/latest/download/iRingo.WeatherKit.sgmodule`
+
+两个版本**只能装一个**——都改写 `weatherkit.apple.com`，同时开会互相覆盖。表格里点开的安装链接走 `gh-proxy.com` 镜像，镜像失效时去掉前缀、换用上面两条原始地址（这个 Surge 版 release 走 `gh-proxy` 是通的，不像 Loon 那个 `.lpx` release 会返 520）。
+
+Rewrite 版的可选端点由参数 `endpoint` 控制，默认 `weatherkit.pages.dev`（作者标注首选、可直连、无需代理），另有 `dev.weatherkit.pages.dev` 与 `weather.nanocat.cloud`（Worker 版，需要代理）。代价是天气请求连同坐标一起经过第三方服务。
+
+装完 Rewrite 版后，`surge.conf` 里那行 `DOMAIN-SUFFIX,weather-analytics-events.apple.com,CN` 会被模块的 `DOMAIN,weather-analytics-events.apple.com,REJECT-DROP` 盖掉（模块规则插在规则列表最顶部）——这正是 Loon 配置注释里想要的效果，**配置不用改**，只是要知道那一行届时成了死规则：删掉模块它会重新生效。
+
+### YouTube 模块（gholts 与 Maasea 二选一）
+
+表格里那两条也不是 LoonKissSurge 的转换结果：gholts 的是上游原生 sgmodule，Maasea 那条是 LoonKissSurge 转出来的。两者同源（gholts 标注 *Based on Maasea's code, Apache-2.0*），都改写 `youtubei.googleapis.com/youtubei/v1/(browse|next|player|search|…)`，**同时开启会对同一个响应跑两遍脚本，必须二选一**。
+
+gholts 那版是超集，多做了四件事：拦 `youtubei/v1/player/ad_break`（服务端广告请求，去广告比纯改响应彻底）、处理 `initplayback` 的 UMP 广告、`auto_hd` 自动选最高分辨率、jump ahead / 屏蔽 store / 屏蔽 AI 摘要等。默认参数即可用，想调在模块参数的 arguments 里改。
+
+**两个需要知道的代价：**
+
+- gholts 版带 `#!requirement=SYSTEM = 'iOS'`，**Mac 上不生效**（模块列表里会显示为不适用）。这份配置 iOS / Mac 共用，所以 Mac 端要么装 Maasea 那条，要么就空着；模块开关状态不跨设备同步，各装各的不会打架。
+- gholts 版的 `auto_hd` 会在 `*.googlevideo.com/videoplayback` 上跑 `http-request` 脚本（`requires-body=1` + `binary-body-mode=1`），也就是说**视频分片流量要过一遍 Surge 解密和脚本**。iOS 上看 YouTube 如果明显变慢、发热变高，先把 `auto_hd` 改成 `false`——这条脚本本身带 `#!REQUIREMENT "'{{{auto_hd}}}' == 'true'"`，关掉后 `videoplayback` 就不进脚本了。Maasea 那条只在 `initplayback` 上做 `Map Local`，开销小得多。
+
+顺带：Maasea 那条自带 `AND,((DOMAIN-SUFFIX,googlevideo.com),(PROTOCOL,UDP)),REJECT` 拦截 UDP，和本配置的 `block-quic = all` 重复，但无害。
+
+### 没有直接对应的两个
+
+| Loon 插件 | 替代做法 |
+| --- | --- |
+| `TelegramRedirect` | [Telegram 跳转](surge:///install-module?url=https%3A%2F%2Fson.zhiaon.top%2Fm%2Ftgredirect.sgmodule)（[son.zhiaon.top](https://son.zhiaon.top)）——把 `t.me` 链接转到指定客户端 |
+| `Node_detection_tool` | [面板·节点信息](surge:///install-module?url=https%3A%2F%2Fyfamilys.com%2Fsgmodule%2Fip-api.sgmodule)（[yfamilys.com/surge](https://yfamilys.com/surge)）；LoonKissSurge 里的 `Official/节点测速` 是 NetSpeed，功能不同 |
+
+son.zhiaon.top 上还有一批「Telegram 访问增强 / 优化 Pro」模块，**不建议装**：它们靠成段的 `IP-CIDR` / `IP-ASN` 规则实现，而模块的 Rule 会被插到规则列表最顶部（见下节），等于给每个请求强加一次 DNS 解析，正好破坏本配置「域名规则前置、IP 规则后置」的优化。
+
+### 装模块前必须知道的四件事
+
+1. **模块的 Rule 插在规则列表最顶部**，优先于 `surge.conf` 的 `[Rule]` 求值。纯域名 `REJECT` 的去广告模块没影响；带 `IP-CIDR` / `IP-ASN` 且不带 `no-resolve` 的模块会把「遇到第一条 IP 规则才解析一次」变成「每个请求都解析」，装之前先把模块内容看一遍。
+2. **模块只能使用配置里已存在的策略，不能新建策略**，也不能修改 `[Proxy]` / `[Proxy Group]` / `[Rule]` 段。写 `DIRECT` / `REJECT` / `REJECT-TINYGIF` 一定可用；写 `场景分流` 这种你配置里有的策略组也能用，但模块作者没法预知你的组名，所以公开的去广告模块基本是硬 `REJECT`——想让用户自选策略的作者会用 `#!arguments=policy:DIRECT` 加 `{{{policy}}}` 占位，在模块参数里改。反过来，**模块里写了你配置里没有的策略名，Surge 会直接报 unknown policy**，这时要么改模块，要么先在配置里加同名策略组。另外模块的 Rule 只能插在规则列表最顶部，没法指定「插在第几条」。
+3. **模块会往 `[Mitm]` 追加 `hostname`**。装得越多解密范围越大，首次「更新外部资源」也越慢。某个 App 出现证书错误 / 网络异常时，先关掉它对应的模块再排查。
+4. **想吃到最新特性就用 Beta 版**。主目录故意不加 JQ 重写这类「不订阅就用不了」的特性；把地址里的 `Surge/` 换成 `Surge/Beta/`、文件名末尾加 `.beta`（如 `淘宝去广告.beta.sgmodule`）即可。本配置已经在用 `pre-matching`，说明 Surge 版本够新，可以优先考虑 Beta。
