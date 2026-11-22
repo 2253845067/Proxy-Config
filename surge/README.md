@@ -41,6 +41,30 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 
 加密 DNS 失败时 Surge 仍可能回落到系统 DNS（与 Loon 类似）；若必须留明文兜底，可取消配置里 `dns-server` 那一行的注释。另外 Surge 不是 mihomo 那种可精细控制的 fake-ip 模式，只用 `always-real-ip` 保证局域网 / Apple 等域名拿到真实 IP；`read-etc-hosts = false`，本机 hosts 不会改解析结果。
 
+## Tailscale
+
+配置里带了一个 Tailscale 节点（`hostname = Proxy-Tool`），是**唯一写死在 `surge.conf` 里的节点**：Surge 的 `tailscale` 必须「策略行 + `[Tailscale <name>]` 段」两段式本地声明，Sub-Store 没有 Surge 的 tailscale 解析 / 输出（只有 Loon 的），托管订阅也塞不进来。
+
+要求 Surge iOS 5.20.0+ / Mac 6.7.0+；交互式登录与自动 MagicDNS 路由要 iOS 5.21.0+ / Mac 6.8.0+。早于后者时只能用 `auth-key`，且没有自动路由，套用下面的手写规则。
+
+**登录（二选一）**
+
+- 交互登录：Surge → 策略 → 选中 `Tailscale` → 策略编辑器里点登录，浏览器授权后 Surge 会写成 `interactive-login = true`。此时删掉 `auth-key` 那行，两者互斥。登录状态按段名保存，改段名要重新登录。
+- `auth-key`：填 `tskey-auth-…`（建议一次性、短期、预授权、带 tag）。**这是密钥，不要提交到仓库**；需要交互批准的 key 走 `auth-key` 注册会失败，只能交互登录。Surge 按 key 的哈希存本机身份，换 key 等于换节点。
+
+**会自动下发什么**：`auto-add-magic-dns-rule = true` 时，MagicDNS 后缀、每个可见 peer 的 100.x 地址、本机自己的 tailnet 地址都会自动路由到该策略，不用写规则。**子网路由、出口节点不会自动下发**，要自己写：
+
+```ini
+IP-CIDR,192.168.1.0/24,Tailscale,no-resolve   # 已在 [Rule] 第 4 段写好
+exit-node = auto                              # 可选：tailnet 里恰好一个可用出口节点时
+```
+
+子网规则**必须排在 `IP-CIDR,192.168.0.0/16,DIRECT,no-resolve` 之前**，否则永远命中 DIRECT（见上面的「规则求值顺序」）。
+
+**DNS**：`[Host]` 里的 `ts.net = server:100.100.100.100` 只是兜底，让 MagicDNS 名字不会掉进国内 DoH 解析失败；策略自己下发的解析器与 `*.ts.net` 规则优先。子网设备（不在 MagicDNS 里）的局域网名字用 `[Host]` 映射，如 `nas.lan = 192.168.1.10`，解出来的 192.168.1.x 交给上面的 IP 规则。
+
+**注意**：这是应用层出站策略，不接管系统全局路由，也不替代系统 Tailscale 客户端；`underlying-proxy` 一旦指向代理，peer 流量就只走 DERP 中继（延迟更高）；`allow-peer-access` / `advertise-*` 是让别的节点反向连本机，iOS 端要 6.0.0+。
+
 ## 其他关键项
 
 `udp-policy-not-supported-behaviour = reject`（节点不支持 UDP 时直接拒绝，而不是回落到直连）、`allow-wifi-access = false`（不向局域网共享代理）、`ipv6 = false` + `ipv6-vif = auto`。
@@ -77,10 +101,11 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 
 ## 规则求值顺序
 
-`Reject` / `Ads`（`pre-matching`）→ 私有网络（`Lan.list` 带 `no-resolve`）→ `PROTOCOL,STUN,REJECT` → CN 域名段 → Proxy 域名段 → CN IP 兜底（`ChinaASN` / `ChinaIP` / `GEOIP`，**不带** `no-resolve`）→ `FINAL`。
+`Reject` / `Ads`（`pre-matching`）→ 私有网络（`Lan.list` 带 `no-resolve`）→ `PROTOCOL,STUN,REJECT` → `IP-CIDR,192.168.1.0/24,Tailscale` → CN 域名段 → Proxy 域名段 → CN IP 兜底（`ChinaASN` / `ChinaIP` / `GEOIP`，**不带** `no-resolve`）→ `FINAL`。
 
 - **不要**去掉 `Lan.list` 的 `no-resolve`：它内部有 8 条 `IP-CIDR`，去掉后每个域名请求求值到那里都会先做一次真实 DNS 解析。
 - **也不要**把 CN IP 三层挪到 Proxy 域名段之前：那等于又变回"每个请求都要解析"，而且会把域名表判定该走代理的流量抢成直连。
+- **Tailscale 子网规则必须留在私有网络段之前**：`IP-CIDR,192.168.0.0/16,DIRECT,no-resolve` 在前面，规则自上而下求值，`192.168.1.0/24` 若排到它后面就永远命中不了。它只写 /24，是为了不影响自家路由器（192.168.77.x）的直连。
 - `PROTOCOL,STUN,REJECT` 用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），已挪到私有网络之后让局域网内的 STUN 走直连；FaceTime / 语音会议异常时可先注释它。
 
 ## iOS / Mac 共用一份
