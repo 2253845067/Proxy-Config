@@ -22,39 +22,10 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-2. **一键导入 `local.dconf`（先装这个，只做一次）**：安装页「配置」区第二排的两个按钮——镜像 / 直连。它是一份只含 `[Proxy Group]` 与 `[Tailscale *]` 两个段的普通配置，会被存进 Profiles 目录；装完在 [更多] → [文件] 里打开它，把 `机场订阅` 那行的占位串 `这里填入你的机场订阅 URL` 换成真实订阅 URL（**只需要改这一处**，`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅）。Tailscale 段的登录见下面的 [Tailscale](#tailscale) 一节。
-
-```text
-# 不走安装页时，也可以用 Surge 的 URL scheme 直接装
-surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Flocal.dconf
-```
-
-   > 代价：`install-config` 装上的是普通 profile，Surge 会给它套用 `#!name` 默认名，所以 Profiles 列表里会出现一份叫 `local.dconf` 的配置。别用它当主配置，也别删除——删掉后 `surge.conf` 引用的段就没了。
-
-3. 导入并切换到 `surge.conf`。`机场订阅` 组在 `local.dconf` 里定义，导入后可在 [策略组] 列表里看到它（隐藏）。`surge.conf` 里的引用写的是 `../Profiles/local.dconf`，如果两台设备上 `local.dconf` 没落在同一层目录导致找不到，改这两个 `#!include` 行的相对路径即可。
-4. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
-5. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
-6. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
-
-## 更新配置时如何保住本地设置
-
-从 URL 导入的是 **managed profile**，来源是仓库里的 `surge.conf`。只要重新下载，文件就会被整份替换，所以**凡是写进 `surge.conf` 的私人内容，更新后都要重填**。解决办法是把私人内容拆到 `local.dconf`，用 `#!include` 引用（官方 *Detached Profile Section* 机制）：
-
-| 内容 | 更新后会丢吗 | 处理方式 |
-|---|---|---|
-| 机场订阅 URL（`机场订阅` 组） | 会 | 放 `local.dconf` 的 `[Proxy Group]`，`surge.conf` 里只有 `#!include local.dconf` |
-| Tailscale 的 `auth-key` / `interactive-login`（`[Tailscale tailscale]` 段） | 会 | 放 `local.dconf` 的 `[Tailscale *]`，用通配引用整段引入 |
-| MITM 的 CA 证书（`[MITM] ca-p12` / `ca-passphrase`） | 会 | `local.dconf` 里留了 `[MITM]` 模板段（默认注释掉），把当前配置里的证书与口令贴进去即可；模块仍然负责 `hostname` |
-| 手动添加的外部资源 / 单个节点 | 不会 | 它们存于 Surge 自己的资源列表，`include-all-proxies=true` 会自动收进 Proxy / Auto |
-| Tailscale 的**机器身份**（登录会话） | 不会 | 存在 App 本地状态（授权登录按段名、auth-key 按 key 哈希），只要段名仍是 `tailscale`，重新加载配置不用再登录 |
-| `[SSID Setting]`、规则、策略组结构 | 会（但本来就在仓库里维护） | 想本机临时改，就把它一起搬进 `local.dconf`（同名段会被 include 的覆盖，别两边重复定义） |
-
-注意事项：
-
-- `local.dconf` 必须放在 **Profiles 目录**、文件名保持 `local.dconf`；`surge.conf` 里用 `#!include ../Profiles/local.dconf` 引用（Surge 按当前 profile 所在目录解析相对路径，所以要从配置文件目录往上一层再进 `Profiles/`）。文件缺失时 `机场订阅` 组不存在、Tailscale 策略不可用（`section-name` 对应的段找不到）。
-- managed profile 里被 include 的段在 UI 里是**只读**的，改订阅 / 登录后要看效果，直接编辑 `local.dconf` 文件即可。
-- 想把 `[Rule]` 之类也搬到本地：`mixed content`（段内容 + `#!include` 混写）需要 iOS 5.22.0+ / Mac 6.9.0+，`[Tailscale *]` / `[Ruleset *]` 通配引用同样如此。注意**同名段不能重复定义**（Surge 会加载失败），所以搬哪一段，就要把 `surge.conf` 里那段的内容删掉、只留 `#!include`。
-- 如果干脆不用本仓库配置，也可以自己做一份本地 profile，把本文件当上游 include 进来（`#!include` 支持远程 URL，Mac 6.0.0+ 的 linked profile），本地那份就能在 UI 里随便改。
+2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
+3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
+4. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
+5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
 
 ## DNS
 
@@ -72,16 +43,14 @@ surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067
 
 ## Tailscale
 
-配置里带了一个 Tailscale 节点（`hostname = Proxy-Tool`）：策略行在 `surge.conf` 的 `[Proxy]`，授权段 `[Tailscale tailscale]` 在 `local.dconf`。Surge 的 `tailscale` 必须「策略行 + `[Tailscale <name>]` 段」两段式本地声明，Sub-Store 没有 Surge 的 tailscale 解析 / 输出（只有 Loon 的），托管订阅也塞不进来。
+配置里带了一个 Tailscale 节点（`hostname = Proxy-Tool`），是**唯一写死在 `surge.conf` 里的节点**：Surge 的 `tailscale` 必须「策略行 + `[Tailscale <name>]` 段」两段式本地声明，Sub-Store 没有 Surge 的 tailscale 解析 / 输出（只有 Loon 的），托管订阅也塞不进来。
 
 要求 Surge iOS 5.20.0+ / Mac 6.7.0+；交互式登录与自动 MagicDNS 路由要 iOS 5.21.0+ / Mac 6.8.0+。早于后者时只能用 `auth-key`，且没有自动路由，套用下面的手写规则。
 
 **登录（二选一）**
 
-- 交互登录：Surge → 策略 → 选中 `Tailscale` → 策略编辑器里点登录，浏览器授权后 Surge 会把 **`local.dconf` 里那段**改写成 `interactive-login = true`（所以更新配置后不用重新登录，改段名才需要）。此时删掉 `auth-key` 那行，两者互斥。
-- `auth-key`：把 `local.dconf` 里 `interactive-login = true` 注释掉，再取消 `#auth-key =` 那行并填真实 key（`tskey-auth-…`，建议一次性、短期、预授权、带 tag）。**这是密钥，不要提交到仓库**；需要交互批准的 key 走 `auth-key` 注册会失败，只能交互登录。Surge 按 key 的哈希存本机身份，换 key 等于换节点。
-
-**不要留占位符**：`auth-key = tskey-auth-替换为你的…` 这类值会被当成真实 key 去注册，Surge 直接报「配置存在错误，请联系配置提供商：[Tailscale *] 字段 auth-key 必须被提供」，整份 profile 都不加载。要么填真 key，要么用交互登录（`local.dconf` 里默认就是 `interactive-login = true`）。
+- 交互登录：Surge → 策略 → 选中 `Tailscale` → 策略编辑器里点登录，浏览器授权后 Surge 会写成 `interactive-login = true`。此时删掉 `auth-key` 那行，两者互斥。登录状态按段名保存，改段名要重新登录。
+- `auth-key`：填 `tskey-auth-…`（建议一次性、短期、预授权、带 tag）。**这是密钥，不要提交到仓库**；需要交互批准的 key 走 `auth-key` 注册会失败，只能交互登录。Surge 按 key 的哈希存本机身份，换 key 等于换节点。
 
 **会自动下发什么**：`auto-add-magic-dns-rule = true` 时，MagicDNS 后缀、每个可见 peer 的 100.x 地址、本机自己的 tailnet 地址都会自动路由到该策略，不用写规则。**子网路由、出口节点不会自动下发**，要自己写：
 
@@ -148,12 +117,6 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 `GEOIP,CN` 使用 `geoip-maxmind-url` 指向的 Loyalsoldier 国家库（经 `gh-proxy.com` 中转）。
 
 `ChinaASN`（`IP-ASN`）用的是 Surge **自带**的 GeoLite2 ASN 库，只随 App 更新，配置里没有像 Egern `asn_db_url` 那样的更换入口——这是 Surge 的能力边界，不是漏配。库过旧时部分国内 IP 可能被误走代理，优先升级 Surge。
-
-## 本配置不含 MITM 段
-
-`surge.conf` 里没有 `[MITM]`，解密域名（`hostname`）由模块下发——这也是更新配置不会影响解密范围的原因。**CA 证书不放模块里**（官方限制：模块不能改 CA），要么放 `local.dconf` 的 `[MITM]` 段（模板已备好），要么每次更新配置时把旧的 `ca-p12` / `ca-passphrase` 抄回来。证书只存在本地 profile 与系统钥匙串，没有云端备份。
-
-`[MITM]` 段在模块里被改的字段只有 `hostname`、`hostname-disabled`、`client-source-address`、`skip-server-cert-verify`、`tcp-connection`、`h2`；若你在 `local.dconf` 里也写了 `hostname`，它会作为基础值，模块在其上覆盖 / 追加。
 
 ## 本配置不含模块 / MITM 证书
 
