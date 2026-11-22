@@ -5,7 +5,8 @@
 #     iOS：Surge → 首页 [更多] → [文件]，同样放在 Profiles 目录），文件名保持 local.dconf。
 #   - surge.conf 里已用 #!include 引用它（[Proxy Group] 段 = 机场订阅 URL，[Tailscale] 段 = 节点授权，
 #     引用路径是 ../Profiles/local.dconf）。
-#   - [MITM] 段是模板，填了 ca-p12 / ca-passphrase 才起作用；段名不要改。
+#   - [Tailscale tailscale] 默认走交互登录；[MITM] 段是模板，填了证书才起作用。段名不要改。
+#   - 任何字段都别留占位符：Surge 会把占位符当真实值校验并让整份配置报错。
 #   - 更新 surge.conf / 从 URL 重新下载都只会换掉 surge.conf，本文件原地保留，不需要重填。
 #   - 不要把真实订阅 URL、auth key 提交到仓库。
 #
@@ -21,15 +22,17 @@
 机场订阅 = select, policy-path=这里填入你的机场订阅 URL, update-interval=86400, policy-regex-filter=(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$, hidden=true
 
 [Tailscale *]
-# > Tailscale 节点（hostname = Proxy-Tool）
-#   与 [Proxy] 里的 `Tailscale = tailscale, section-name=tailscale` 对应，段名必须是 tailscale。
-#   登录方式二选一：
-#   - 交互登录（推荐）：段里只留 hostname，然后在 Surge 策略编辑器里点登录；Surge 会把本文件
-#     改写为 interactive-login = true（授权状态随机器保存，不会因为更新配置而丢失）。
-#   - auth-key：填一次性、预授权、带 tag 的 key；交互批准类的 key 走这里会注册失败。
-#   key 是密钥，别提交到仓库；换 key 等于换节点，需要到管理台删旧节点。
+# > Tailscale 节点（hostname = Proxy-Tool），与 [Proxy] 里的
+#   `Tailscale = tailscale, section-name=tailscale` 对应，段名必须是 tailscale。
+#   登录方式二选一，**不要**两个都留、也不要留占位符：
+#   占位符会被 Surge 当成真实值去注册，直接报「配置存在错误 / 字段 auth-key 必须被提供」。
+#   A（推荐，免密钥）：保留下面的 interactive-login = true，然后在 Surge 策略编辑器里点登录。
+#     登录成功后身份存在本机，更新配置不用重新登录。
+#   B（auth-key）：注释掉 interactive-login，取消 #auth-key 的注释并填真实 key。
+#     交互批准类的 key 不能用这个方式；换 key 等于换节点，需到管理台删旧节点。
 [Tailscale tailscale]
-auth-key = tskey-auth-替换为你的AuthKey
+interactive-login = true
+#auth-key = tskey-auth-xxxxx
 hostname = Proxy-Tool
 auto-add-magic-dns-rule = true
 

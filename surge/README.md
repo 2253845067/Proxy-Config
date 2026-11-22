@@ -79,7 +79,9 @@ surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067
 **登录（二选一）**
 
 - 交互登录：Surge → 策略 → 选中 `Tailscale` → 策略编辑器里点登录，浏览器授权后 Surge 会把 **`local.dconf` 里那段**改写成 `interactive-login = true`（所以更新配置后不用重新登录，改段名才需要）。此时删掉 `auth-key` 那行，两者互斥。
-- `auth-key`：填在 `local.dconf` 的 `[Tailscale tailscale]` 段里，`tskey-auth-…`（建议一次性、短期、预授权、带 tag）。**这是密钥，不要提交到仓库**；需要交互批准的 key 走 `auth-key` 注册会失败，只能交互登录。Surge 按 key 的哈希存本机身份，换 key 等于换节点。
+- `auth-key`：把 `local.dconf` 里 `interactive-login = true` 注释掉，再取消 `#auth-key =` 那行并填真实 key（`tskey-auth-…`，建议一次性、短期、预授权、带 tag）。**这是密钥，不要提交到仓库**；需要交互批准的 key 走 `auth-key` 注册会失败，只能交互登录。Surge 按 key 的哈希存本机身份，换 key 等于换节点。
+
+**不要留占位符**：`auth-key = tskey-auth-替换为你的…` 这类值会被当成真实 key 去注册，Surge 直接报「配置存在错误，请联系配置提供商：[Tailscale *] 字段 auth-key 必须被提供」，整份 profile 都不加载。要么填真 key，要么用交互登录（`local.dconf` 里默认就是 `interactive-login = true`）。
 
 **会自动下发什么**：`auto-add-magic-dns-rule = true` 时，MagicDNS 后缀、每个可见 peer 的 100.x 地址、本机自己的 tailnet 地址都会自动路由到该策略，不用写规则。**子网路由、出口节点不会自动下发**，要自己写：
 
