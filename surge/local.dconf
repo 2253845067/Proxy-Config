@@ -1,0 +1,49 @@
+# Proxy-Config / Surge 本地覆盖（不会随配置更新被覆盖）
+#
+# 用法：
+#   - 把本文件放到 Surge 的配置目录（Mac：~/Library/Application Support/Surge/Profiles/；
+#     iOS：Surge → 首页 [更多] → [文件]，同样放在 Profiles 目录），文件名保持 local.dconf。
+#   - surge.conf 里已用 #!include 引用它（[Proxy Group] 段 = 机场订阅 URL，[Tailscale] 段 = 节点授权，
+#     引用路径是 ../Profiles/local.dconf）。
+#   - [MITM] 段是模板，填了 ca-p12 / ca-passphrase 才起作用；段名不要改。
+#   - 更新 surge.conf / 从 URL 重新下载都只会换掉 surge.conf，本文件原地保留，不需要重填。
+#   - 不要把真实订阅 URL、auth key 提交到仓库。
+#
+# 注意：
+#   - 从 URL 下载的 profile 是 managed profile，被 include 的段在界面上是只读的，
+#     改这里要直接编辑文件（用文本编辑器 / Snippets），改完重新加载配置生效。
+#   - 本文件里有两处 #!include 引用（[Proxy Group] 与 [Tailscale]，各自专用引用），
+#     同一个段名不要在本文件里写两遍，否则加载失败。
+#   - [MITM] 段可选：填了 ca-p12 / ca-passphrase 才会生效；不填就别取消注释（空 base64 会报错）。
+
+[Proxy Group]
+# > 机场订阅：把占位串换成你的机场订阅 URL（这一行是唯一必须改的地方）
+机场订阅 = select, policy-path=这里填入你的机场订阅 URL, update-interval=86400, policy-regex-filter=(?i)^(?!.*(?:群|邀请|返利|循环|官网|客服|网站|网址|获取|订阅|流量|剩余流量|到期|机场|下次|版本|官址|备用|过期|已用|联系|邮箱|工单|贩卖|通知|倒卖|防止|国内|地址|频道|无法|说明|使用|提示|特别|访问|支持|教程|关注|更新|作者|加入|超时|收藏|福利|失联|USE|USED|TOTAL|EXPIRE|EMAIL|Panel|Channel|Author|Traffic|\d{4}-\d{2}-\d{2}|\d+G)).*$, hidden=true
+
+[Tailscale *]
+# > Tailscale 节点（hostname = Proxy-Tool）
+#   与 [Proxy] 里的 `Tailscale = tailscale, section-name=tailscale` 对应，段名必须是 tailscale。
+#   登录方式二选一：
+#   - 交互登录（推荐）：段里只留 hostname，然后在 Surge 策略编辑器里点登录；Surge 会把本文件
+#     改写为 interactive-login = true（授权状态随机器保存，不会因为更新配置而丢失）。
+#   - auth-key：填一次性、预授权、带 tag 的 key；交互批准类的 key 走这里会注册失败。
+#   key 是密钥，别提交到仓库；换 key 等于换节点，需要到管理台删旧节点。
+[Tailscale tailscale]
+auth-key = tskey-auth-替换为你的AuthKey
+hostname = Proxy-Tool
+auto-add-magic-dns-rule = true
+
+[MITM]
+# > CA 证书放这里，更新 surge.conf 就不用再抄一遍（官方：证书只存在 profile 与系统钥匙串里，
+#   重新下载配置会整份覆盖，不抄出来就丢了）。
+#   取法：当前配置 → Surge 的 [MITM] 段里 ca-p12（一整行 base64）和 ca-passphrase 原样复制过来。
+#   生成新证书：Mac 在 Dashboard、iOS 在配置编辑器里点「生成证书」，它会把 CA 写进当前 profile，
+#   那时候再去抄一次。
+#   下方两行默认注释掉，否则 base64 为空会让 profile 校验报错；把 <...> 换成真实值后再取消注释。
+#ca-p12 = MIIJtQ..........
+#ca-passphrase = 你的口令
+
+# > hostname（解密哪些域名）**不要**写死在这里：本仓库用模块下发 hostname，
+#   模块可以改 [MITM] 的 hostname，但不能改 CA 证书；写在这里会和模块的 hostname 打架。
+#   想在本地临时加域名，再取消下面这行注释（会整体覆盖生效的 hostname 列表，模块的值不再生效）：
+#hostname = -*.apple.com, -*.icloud.com, -*.mzstatic.com, *
