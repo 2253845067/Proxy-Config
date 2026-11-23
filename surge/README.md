@@ -67,13 +67,13 @@ exit-node = auto                              # 可选：tailnet 里恰好一个
 
 ## 本地配置 local.conf
 
-`surge.conf` 通过 URL 导入 Surge 后作为远程核心配置，`local.conf` 是本地主配置。后者用相对路径 `#!include surge.conf` 引用核心，并在 `[Proxy Group]` / `[MITM]` 追加仅本机保存的订阅和证书：
+`surge.conf` 通过 URL 导入 Surge 后作为远程核心配置，`local.conf` 是本地主配置。后者用相对路径 `#!include surge.conf` 引用核心，在 `[Proxy Group]` 追加仅本机保存的订阅，并在本地 `[MITM]` 保存证书字段：
 
 | 段 | surge.conf 里的写法 | local.conf 里存什么 |
 |---|---|---|
-| `[General]`、`[SSID Setting]`、`[Host]`、`[Proxy]`、`[Tailscale tailscale]`、`[Proxy Group]`、`[Rule]`、`[MITM]` | `#!include surge.conf` | 对应段来自远程核心 |
+| `[General]`、`[SSID Setting]`、`[Host]`、`[Proxy]`、`[Tailscale tailscale]`、`[Proxy Group]`、`[Rule]` | `#!include surge.conf` | 对应段来自远程核心 |
 | `[Proxy Group]` | include 后补充本地组 | `机场订阅` 的真实 URL |
-| `[MITM]` | include 后填写本地值 | `ca-p12` / `ca-passphrase` |
+| `[MITM]` | 不需要 include | `ca-p12` / `ca-passphrase` 等本地证书字段 |
 
 这样本地入口始终保留订阅 URL 与证书，更新远程托管的 `surge.conf` 后，本地配置继续读取更新后的核心。远程核心不应再反向 include `local.conf`，否则会形成循环引用。
 
