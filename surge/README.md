@@ -79,6 +79,7 @@ exit-node = auto                              # 可选：tailnet 里恰好一个
 |---|---|---|
 | `[Proxy Group]` | `#!include local.conf` | `机场订阅` 组（真实订阅 URL） |
 | `[MITM]` | `#!include local.conf` | `ca-p12` / `ca-passphrase`（默认注释，填了才生效） |
+| `[General]` / `[Rule]` | —— | 空 `[General]` + `FINAL,DIRECT`：只为让 `local.conf` 能单独导入，被引用时不参与求值 |
 
 这样 `surge.conf` 整份更新时，订阅 URL 与证书都不会被覆盖。文件缺失时配置仍能加载，只是没有订阅节点、MITM 不生效。
 
@@ -87,6 +88,7 @@ Tailscale **不在这份文件里**：策略行与 `[Tailscale tailscale]` 段�
 注意：
 
 - 引用的文件**不能再引用第三个文件**（官方限制）；`local.conf` 只放上面这些段。
+- `local.conf` 同时要能被单独导入（一键导入走的就是这条路），所以它自带空的 `[General]` 和 `FINAL,DIRECT` 收尾；缺了这两样，Surge 会把它当成残缺配置而报错。
 - 一个段只引用一个文件时该段可以在 UI 里编辑；引用托管配置的段是只读的，改要直接编辑 `local.conf`。
 - 段名不要重复：同一个段名在两个文件里各定义一次会加载失败；`local.conf` 只写上面那两段。
 - 不要把真实订阅 URL、auth key、证书提交到仓库。
