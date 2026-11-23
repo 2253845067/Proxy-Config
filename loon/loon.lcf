@@ -1,19 +1,4 @@
-# Proxy-Config / Loon 配置
-#
-# 用途：
-#   - 通过 README 里的一键导入链接直接导入 Loon 使用。
-#   - resource-parser 仅用于 Loon 解析订阅资源，不代表此文件由 Sub-Store 生成。
-#
-# 策略组：
-#   - 精简分组：Proxy / Auto / CN / 场景分流。
-#   - 场景分流：连上透明代理路由器 WiFi 时自动走 DIRECT（由路由器代理），
-#     其他网络（默认/蜂窝）走 Proxy/Auto，避免双重代理。
-#   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
-#
-# 规则：
-#   - 广告规则走 REJECT。
-#   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 场景分流；未命中流量兜底走 场景分流。
+# Loon 完整配置；导入与使用说明见 README。
 
 [General]
 # IPv6 解析模式：dual = DNS 同时查 A/AAAA；只想省事、避免半开 IPv6 拖慢解析可改 prefer-v4
@@ -24,8 +9,7 @@ ipv6-vif = auto
 # *.lan / *.local / *.arpa 必须保留真实 IP，否则本地设备（路由器、NAS、打印机）域名会被解析成 Fake IP
 real-ip = *.apple.com,*.icloud.com,*.lan,*.local,*.arpa
 # DNS 服务器：仅保留加密 DNS，避免系统 DNS 或明文 DNS 泄露查询域名
-# 全部使用 IP 形式的 DoH：DoH 主机名本身也要先解析，用域名就得先依赖一条明文 DNS 做 bootstrap；
-# 同时不使用 cloudflare-dns.com 这类国内不可达的境外 DoH，避免解析拖慢或失败
+# DoH 使用 IP 地址，避免依赖明文 DNS bootstrap。
 doh-server = https://223.5.5.5/dns-query,https://1.12.12.12/dns-query,https://223.6.6.6/dns-query
 # 劫持发往任意服务器 53 端口的明文 DNS 交给 Loon，防止应用绕过加密 DNS
 hijack-dns = *:53

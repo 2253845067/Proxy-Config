@@ -126,15 +126,14 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 
 - **不要**去掉 `Lan.list` 的 `no-resolve`：它内部有 8 条 `IP-CIDR`，去掉后每个域名请求求值到那里都会先做一次真实 DNS 解析。
 - **也不要**把 CN IP 三层挪到 Proxy 域名段之前：那等于又变回"每个请求都要解析"，而且会把域名表判定该走代理的流量抢成直连。
-- **Tailscale 子网规则必须排在 `Lan.list` 之前**：`Lan.list` 第 13 行就是 `IP-CIDR,192.168.0.0/16`（它自己没有 `no-resolve`，`192.168.1.1` 这类地址照样匹配），它又排在第一段私有网络里；`192.168.1.0/24` 若挂在它后面，访问 192.168.1.1 会被判成 DIRECT 走掉。同理也别挪到 `Direct.list` / 显式私网 `IP-CIDR` 之后。它只写 /24，是为了不影响自家路由器（192.168.77.x）的直连。
+- **Tailscale 子网规则必须排在 `Lan.list` 之前**：其中 `IP-CIDR,192.168.0.0/16` 会先把 192.168.1.x 判为 DIRECT；同理不要将子网规则放在 `Direct.list` 或显式私网规则之后。仅使用 `/24` 是为了不影响本地 `192.168.77.x` 路由器网段。MagicDNS 与子网路由是两回事：MagicDNS/peer 地址由策略自动路由，子网路由需显式写规则；出口节点也不会由这条规则配置。
 - `PROTOCOL,STUN,REJECT` 用来减少 WebRTC 泄漏真实 IP（与 Egern / Loon 的 STUN 处理对齐），已挪到私有网络之后让局域网内的 STUN 走直连；FaceTime / 语音会议异常时可先注释它。
 
 ## iOS / Mac 共用一份
 
 `read-etc-hosts` 只在 Mac 生效，`allow-wifi-access` / `all-hybrid` 只在 iOS 生效，另一端会直接忽略、不会报错，所以不要为了"两端通用"删掉它们。`icon-url` 需要 Surge Mac 6.5.0+，旧版本只是不显示图标。
 
-## GeoIP / ASN
-
+**规则集刷新**：当前 46 个外部规则集使用 Surge 默认 `update-interval`（86400 秒，即 24 小时），与 Repcz/Tool 每日重建节奏一致。Surge 会缓存已下载版本，单次更新失败通常继续使用缓存；首次导入或清空缓存后，应在「工具」确认 46 个规则集均下载成功。\n\n## GeoIP / ASN\n
 `GEOIP,CN` 使用 `geoip-maxmind-url` 指向的 Loyalsoldier 国家库（经 `gh-proxy.com` 中转）。
 
 `ChinaASN`（`IP-ASN`）用的是 Surge **自带**的 GeoLite2 ASN 库，只随 App 更新，配置里没有像 Egern `asn_db_url` 那样的更换入口——这是 Surge 的能力边界，不是漏配。库过旧时部分国内 IP 可能被误走代理，优先升级 Surge。

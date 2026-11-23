@@ -69,13 +69,7 @@
 
   <div class="searchwrap"><input id="q" type="search" placeholder="搜索模块名或 Loon 插件名…" autocomplete="off"></div>
 
-  <h2>配置 <span class="count">先导入核心，再创建本地入口</span></h2><div class="grid cfg"><a class="card" href="surge:///install-config?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf"><span class="row"><span class="name">① 导入 surge.conf（镜像）</span></span><span class="meta">surge:///install-config</span></a><a class="card" href="surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf"><span class="row"><span class="name">① 导入 surge.conf（直连 GitHub）</span></span><span class="meta">surge:///install-config</span></a></div><p class="note">② 在 Surge 中新建本地配置，复制下面的内容粘贴进去并保存。将 <code>机场订阅</code> 占位串替换为真实订阅 URL，MITM 证书按需填写。</p><textarea id="local-config" readonly spellcheck="false" style="display:block;width:100%;min-height:520px;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto;"># Proxy-Config / Surge 本地主配置
-#
-# 先通过 URL 将远程 surge.conf 导入 Surge，再创建本地配置并保存本文件内容。
-# 本地配置按段引用 Surge 中名为 surge.conf 的配置，订阅地址与 MITM 证书保存在本文件。
-# 若 Surge 中核心配置显示为其他文件名，请将下面的 include 目标改成该名称。
-#
-# 若 GitHub raw 无法访问，可将下面 URL 中的地址替换为 gh-proxy 镜像地址。
+  <h2>配置 <span class="count">先导入核心，再创建本地入口</span></h2><div class="grid cfg"><a class="card" href="surge:///install-config?url=https%3A%2F%2Fgh-proxy.com%2Fhttps%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf"><span class="row"><span class="name">① 导入 surge.conf（镜像）</span></span><span class="meta">surge:///install-config</span></a><a class="card" href="surge:///install-config?url=https%3A%2F%2Fraw.githubusercontent.com%2F2253845067%2FProxy-Config%2Fmain%2Fsurge%2Fsurge.conf"><span class="row"><span class="name">① 导入 surge.conf（直连 GitHub）</span></span><span class="meta">surge:///install-config</span></a></div><p class="note">② 在 Surge 中新建本地配置，复制下面的内容粘贴进去并保存。将 <code>机场订阅</code> 占位串替换为真实订阅 URL，MITM 证书按需填写。</p><textarea id="local-config" readonly spellcheck="false" style="display:block;width:100%;min-height:520px;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow:auto;"># Surge 本地入口；需与远程核心 surge.conf 同名，订阅与证书只保存在本机。
 
 [General]
 #!include surge.conf

@@ -1,24 +1,4 @@
-# Proxy-Config / Egern 配置
-#
-# 用途：
-#   - 通过 README 里的一键导入链接直接导入 Egern 使用。
-#   - 导入后把你的机场订阅 URL 添加到“机场订阅”策略组，其他策略组会自动复用这些节点。
-#
-# 策略组（5 个）：
-#   - 场景：连上 YUQI / WiFi2 时整体 DIRECT，其余网络走 Proxy；WiFi2 是可自行修改的模板。
-#   - Proxy：第一个是 Auto，后面直接列出全部订阅节点，可按节点手动选择。
-#   - Auto / CN：自动测速 / 国内直连，命名与 mihomo、Loon 保持一致。
-#   - 机场订阅：隐藏的订阅入口；节点只在这里定义，Proxy 通过 YAML 锚点 *SubURL 复用，占位串只改一处。
-#   - 不为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
-#
-# 规则（51 条，其中 46 个规则集，全部来自 Repcz/Tool 分支 X）：
-#   - 第一条是 stun 拒绝，防 WebRTC 泄漏真实 IP；故意用 REJECT 而非 NO-DROP，理由见 README。
-#   - 广告规则走 REJECT-NO-DROP，与 mihomo 的 REJECT-DROP 语义对齐。
-#   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务与未命中流量都走 场景（在家直连 / 在外走 Proxy）。
-#
-# 模块（16 个，合计声明 31 个 MITM 域名）：
-#   - 分组与排障顺序写在下方 modules 段；证书由 Egern 自己管理，ca_p12 / ca_passphrase 必须留空。
+# Egern 完整配置；订阅、策略组与模块说明见 README。
 
 ---
 ipv6: false                                 # 关闭 IPv6 解析与出站，避免半开 IPv6 环境下大量连接超时
@@ -72,8 +52,7 @@ dns:
     overseas:                               # 国外 DoH：forward 判定为 overseas 的域名用它解析
       - https://8.8.8.8/dns-query
       - https://1.1.1.1/dns-query
-  # 官方语义：proxy_nameservers 的连接一律强制直连（且绕过 forward 规则），
-  # 因此必须填国内可达的 DoH；填 8.8.8.8 / 1.1.1.1 会在国内网络下解析失败，导致域名形式的节点全部不可用
+  # 强制直连且绕过 forward；必须使用国内可达的 DoH，避免域名节点无法解析。
   proxy_nameservers:
     - https://223.5.5.5/dns-query
     - https://1.12.12.12/dns-query
@@ -151,12 +130,7 @@ policy_groups:
       icon: "https://gh-proxy.com/https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Auto.png"
 
   # ── Proxy ──
-  # Auto 在前，后面直接跟全部订阅节点，便于手动挑单个节点。
-  # 顺序由官方文档保证：urls 与 policies 混用时，订阅节点排在静态子策略之后并按名称去重。
-  # 也就是说静态项（Auto、DIRECT、REJECT）只能排在节点「前面」，无法排到节点后面；
-  # 为了让节点紧跟 Auto，这里只留 Auto，直连/拒绝改由 CN 组切换（那里仍是 DIRECT/Proxy/REJECT 三项）。
-  # 没用 flatten：文档说 flatten 会展开「所有」嵌套策略组，Auto 会被一起展开、从列表里消失。
-  # 代价是订阅会被拉取两次（机场订阅 一次、这里一次），间隔一致，不影响使用。
+  # Auto 必须紧邻订阅节点；静态项无法排在订阅节点之后，详见 README。
   - select:
       name: Proxy
       policies:
@@ -191,18 +165,14 @@ policy_groups:
 rules:
   # 全部来自 Repcz/Tool（分支 X）的 Egern 规则集，上游每日自动重建
   # ── 协议级 ──
-  # 必须放第一条：STUN 不涉及域名/IP，放后面会被前面的 rule_set 抢走。
-  # 这里用 REJECT 而不是 REJECT-NO-DROP：WebRTC 需要快速失败才能及时回落到 TURN，
-  # 静默丢弃会让通话建立多等 5-10 秒。不拦 STUN 会把真实公网 IP 泄漏给网页。
+  # 必须置顶；REJECT 让 WebRTC 尽快回落 TURN。详见 README。
   - protocol:
       name: stun
       match: stun
       policy: REJECT
 
   # ── REJECT ──
-  # 用 REJECT-NO-DROP（丢弃不回 RST）与 mihomo 的 REJECT-DROP 语义对齐：
-  # 回 RST 等于告诉广告 SDK“这里有拦截器”，会触发重试/切备用域名/上报特征。
-  # 代价是拦截表现为超时，个别 App 首屏可能慢 1-3 秒；疑似误杀时先查这两条规则的命中日志。
+  # 拦截策略与误杀排查说明见 README。
   - rule_set:
       name: Reject
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Reject.yaml"
@@ -237,8 +207,7 @@ rules:
       match: "https://gh-proxy.com/https://raw.githubusercontent.com/Repcz/Tool/X/Egern/Rules/Bilibili.yaml"
       policy: CN
       update_interval: 86400
-  # Apple 天气放行直连：AppleServers 里的 17.0.0.0/8 会把天气的 17.x CDN 一起拽去代理，
-  # 天气数据 / WeatherKit 已在 AppleCN 里，这里补上 AppleCN 没覆盖的两个
+  # AppleServers 的 IP 段可能代理天气 CDN；显式放行天气域名。
   - domain_suffix:
       match: weather.apple.com
       policy: CN
@@ -456,34 +425,12 @@ rules:
   - default:
       policy: 场景                      # 前面全没命中 -> 场景（在家直连 / 在外走 Proxy）；删掉场景组时改回 Proxy
 
-# MITM 空段：提前占位，之后加 modules 只改 modules 段，不用同时改两处。
-# 现在没有域名列表也没有启用的 modules，因此不会解密任何流量。
-# ca_p12 / ca_passphrase 必须留空：本仓库是公开的，证书由 Egern 自己管理。
+# 证书由 Egern 管理；公开仓库中不要填写证书或口令。
 mitm:
   ca_p12:
   ca_passphrase:
 
-# ══ 模块 / MITM ══
-# 共 16 个，全部 enabled: true。排障时按下面的分组整组注释，不要逐个乱试：
-#   基础设施 1：Script-Hub —— script.hub 这个假域名靠它在本机转换规则，
-#               关掉它，「开屏广告」和「高德去广告」两条（走 script.hub 中转）会一起失效
-#   第一波 5：开屏广告、B 站两件套、YouTube 净化、百度去广告
-#   第二波 5：百度地图、高德、夸克、夸克扫描王、网易云
-#   第三波 4：微信公众号、淘宝、拼多多、京东（京东同时把 Cookie 上报给第三方比价服务）
-#   其他 1：missav 网页净化
-#
-# MITM 域名由各模块自己声明、由客户端自动合并，所以上面的 mitm 段不写 hostname；但绝不能写 "*"。
-# 实测这批模块合计声明 31 个 MITM 域名，全部是具体域名，没有通配。
-# 证书固定（pinning）的 App（银行、12306、部分政务/游戏）被 MITM 后会直接没有任何网络，
-# 出现「某个 App 突然全断」时先禁用对应模块，而不是去改规则。
-# 首次启用会要求安装并信任根证书，装好之前所有模块都不生效。
-#
-# 注意：模块会自带 [Rule] 段并被合并进主规则，优先级高于 rules 段（多为 pre-matching），
-# 这是三条最容易造成误伤的，出问题先看这里：
-#   拼多多 → REJECT cdl-1/cdl-p2/cd-1.pddpic.com（图片 CDN）→ 商品图可能加载不出来
-#   淘宝   → REJECT ut.taobao.com / ossgw.alicdn.com / hudong.alicdn.com（埋点与 CDN）→ 个别图片/互动挂件异常
-#   微信   → REJECT SUFFIX wxs.qq.com → 小程序静态资源域，小程序白屏时第一个怀疑它
-# 其余注入规则都是纯广告/埋点域名（网易云 4 条、京东 1 条 jddebug、拼多多其余 pinduoduo 子域），风险低。
+# 模块说明、分组排障、MITM 风险与误伤域名见 README；模块自带规则优先级高于 rules。
 modules:
   # ── 基础设施 ──
   - name: Script-Hub

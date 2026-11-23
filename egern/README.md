@@ -72,7 +72,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/egern/egern.yaml
 
 ## 模块（MITM 重写）
 
-`modules` 段启用 16 个模块，按用途分五组写在配置注释里，**排障时整组注释，不要逐个试**：
+`modules` 段启用 16 个模块，按用途分五组，排障时可整组禁用。
 
 | 分组 | 模块 | 作用 |
 | --- | --- | --- |
@@ -88,7 +88,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/egern/egern.yaml
 
 首次启用会要求安装并信任根证书，装好之前所有模块都不生效。做到这里的代价是：证书固定（pinning）的 App（银行、12306、部分政务/游戏）被 MITM 后会**直接没有任何网络**——出现「某个 App 突然全断」时先禁用对应模块，不要先怀疑规则。
 
-另外这批模块只保留 GitHub 源（经 `gh-proxy`）与 `script.hub` 中转，B 配置里那些挂在个人域名（`loon.103516.xyz`、`yfamilys.com`、`mock.parsingbook.workers.dev`、`reven.jsforbaby.workers.dev`、`one-api.zzxu.de`）上的模块都没有引入：它们挂掉时是静默失效，不报错，只会某天功能突然回来。
+另外，部分模块带有作者未公开含义的 `PR*` 开关，出现界面异常时可先禁用对应模块。微信的两个重写方案会覆盖同一批接口，因此只启用一个；番茄小说的两个模块也不要同时开。百度网页模块只作用于 `m.baidu.com` / `www.baidu.com` 搜索首页，不含网盘与贴吧。
 
 ### 模块自带的 `[Rule]` 段
 

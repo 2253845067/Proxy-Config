@@ -25,6 +25,8 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 > **注意**：Sub-Store 拉取模板这一步镜像不保证可用——`gh-proxy.com` 对某些路径会返回 403，遇到就换回 GitHub 原始地址。这一步和配置里的规则集下载不同：`mihomo.yaml` 内 50 个规则集外链本来就走 `gh-proxy.com`，只有「Sub-Store 拉模板」这一跳用原始地址最稳。
 
+```
+
 ## 策略组
 
 `Proxy` 手动选择（内含 `Auto` 与全部订阅节点）、`Auto` 自动测速（300 秒一轮、容差 50ms）、`CN` 默认 `DIRECT`（可切 `Proxy` / `REJECT`）。
@@ -41,9 +43,9 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 
 ## DNS 端口
 
-内置 DNS 监听 `0.0.0.0:1053`（内核默认端口）。53 端口由 TUN 的 `dns-hijack` 接管，因此不占 53，不会和 Windows ICS / Docker 抢端口。
+内置 DNS 监听 `0.0.0.0:1053`；53 端口由 TUN 的 `dns-hijack` 接管，不会和 Windows ICS / Docker 冲突。`allow-lan: true` 时，代理 `7890` 与 DNS `1053` 均对局域网开放且没有认证；不需要共享时关闭 `allow-lan`，或将 DNS 监听改为 `127.0.0.1:1053`。
 
-但要注意 `allow-lan: true` 下 `0.0.0.0:1053` 对局域网是开放的（同样开放的还有 `7890`，且都不带认证）；不需要给局域网用时，把 `listen` 改成 `127.0.0.1:1053`。
+Clash API 默认关闭；仅在需要的客户端启用，避免与桌面客户端内置面板冲突。
 
 ## QUIC 拦截
 

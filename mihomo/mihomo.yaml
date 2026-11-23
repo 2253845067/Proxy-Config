@@ -1,28 +1,4 @@
-# Proxy-Config / Mihomo 模板
-#
-# 用途：
-#   - 作为 Sub-Store 前端 [文件] tab 中的 Mihomo 配置文件远程模板使用。
-#   - 在 Sub-Store 里配置订阅与脚本操作后，将生成链接导入 Mihomo Party 等客户端。
-#   - 不在这里手写 proxy-providers 或 proxies；Sub-Store 会在输出结果中注入节点。
-#
-# 策略组：
-#   - 精简分组：Proxy / Auto / CN。
-#   - Proxy 和 Auto 通过 include-all + filter 自动收纳订阅节点。
-#   - 不再为 OpenAI、YouTube、Steam 等服务单独建组，避免面板过长。
-#
-# 规则：
-#   - 规则集统一使用 Repcz/Tool（分支 X）的 mihomo 列表，每日自动重建。
-#   - 广告规则走 REJECT-DROP。
-#   - 国内、局域网、常见中国服务走 DIRECT/CN。
-#   - 海外服务走 Proxy；未命中流量兜底走 Proxy。
-#
-# DNS / 泄漏防护（本次加固）：
-#   - fake-ip 过滤改为 rule 模式，只有明确 real-ip 的域名才下发真实 IP。
-#   - 关闭配置 hosts 与系统 hosts，本机 hosts 不再能改变解析结果。
-#   - 海外 nameserver 全部为 IP 直连 DoH，并经 Proxy 出境，不依赖明文 bootstrap。
-#   - direct-nameserver 使用国内 DoH，直连流量也不回落到明文 DNS。
-#   - 规则集为文本 classical 列表，随规则源每日更新。
-#   - 拒绝 UDP/443（QUIC），避免 QUIC 绕过代理与 UDP 泄漏。
+# Mihomo Sub-Store 远程模板；节点由 Sub-Store 注入。使用说明见 README。
 
 
 # 1. 全局参数 Global Settings
