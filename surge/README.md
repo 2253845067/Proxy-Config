@@ -22,18 +22,7 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-2. **订阅 URL 放哪**，二选一：
-
-   - **推荐：关联配置（只把订阅组留在本地）**。在 Surge 里对本配置点「创建关联配置」，弹窗里**只勾选 `Proxy Group`**，其余段（General / Proxy / Rule / Host / SSID Setting / MITM / Tailscale）全部不勾。Surge 会生成一份可直接编辑的本地配置，里面只有：
-
-     ```ini
-     [Proxy Group]
-     #!include <本配置文件>.conf
-     ```
-
-     打开那份本地配置，把 `机场订阅` 一组的 `policy-path` 换成真实订阅 URL。以后本仓库这份托管配置怎么更新，订阅 URL 都不会被覆盖，Tailscale 与 MITM 也可以写在这份本地配置里（不勾选即由它独立控制）。
-
-   - **手动**：导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。代价是每次重新下载配置都要再填一遍。
+2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
 3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
 4. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
 5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
