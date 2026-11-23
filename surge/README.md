@@ -22,7 +22,13 @@ https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/m
 https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-2. 导入并切换到这份配置后，打开 [策略组] → `机场订阅`（该组已隐藏，可在策略组列表里找到），把 `policy-path` 里的占位串 `这里填入你的机场订阅 URL` 换成你的机场订阅 URL 并保存。**只需要改这一处**：`Proxy` / `Auto` 通过 `include-other-group` 复用同一份订阅。
+2. **导入 `local.conf`（订阅 URL 与 MITM 证书放这里）**，二选一：
+
+   - **关联配置**：先导入并切换到 `surge.conf`，再对它点「创建关联配置」，弹窗里只勾选 `Proxy Group`，其余段全部不勾。Surge 会生成一份本地配置，把 `surge.conf` 里 `#!include local.conf` 的路径改成实际文件名（或直接把本地配置命名成 `local.conf`）。
+   - **一键导入**：安装页里 `local.conf` 那两个按钮（镜像 / 直连），装进 Profiles 目录即可；`surge.conf` 里 `#!include local.conf` 就按文件名找它。
+
+   然后打开那份 `local.conf`，把 `机场订阅` 那行的占位串 `这里填入你的机场订阅 URL` 换成真实订阅 URL（**唯一必改**，`Proxy` / `Auto` 通过 `include-other-group` 复用），再按需填 MITM 证书。以后 `surge.conf` 怎么更新，这两样都不会被覆盖。
+
 3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
 4. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
 5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
@@ -43,7 +49,7 @@ https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 
 ## Tailscale
 
-配置里带了一个 Tailscale 节点（`hostname = Proxy-Tool`），是**唯一写死在 `surge.conf` 里的节点**：Surge 的 `tailscale` 必须「策略行 + `[Tailscale <name>]` 段」两段式本地声明，Sub-Store 没有 Surge 的 tailscale 解析 / 输出（只有 Loon 的），托管订阅也塞不进来。
+配置里带了一个 Tailscale 节点（`hostname = Proxy-Tool`）：策略行在 `surge.conf` 的 `[Proxy]`，授权段 `[Tailscale tailscale]` 紧随其后。必须两段式本地声明（Sub-Store 没有 Surge 的 tailscale 解析 / 输出，只有 Loon 的），托管订阅塞不进来。
 
 要求 Surge iOS 5.20.0+ / Mac 6.7.0+；交互式登录与自动 MagicDNS 路由要 iOS 5.21.0+ / Mac 6.8.0+。早于后者时只能用 `auth-key`，且没有自动路由，套用下面的手写规则。
 
@@ -64,6 +70,26 @@ exit-node = auto                              # 可选：tailnet 里恰好一个
 **DNS**：`[Host]` 里的 `ts.net = server:100.100.100.100` 只是兜底，让 MagicDNS 名字不会掉进国内 DoH 解析失败；策略自己下发的解析器与 `*.ts.net` 规则优先。子网设备（不在 MagicDNS 里）的局域网名字用 `[Host]` 映射，如 `nas.lan = 192.168.1.10`，解出来的 192.168.1.x 交给上面的 IP 规则。
 
 **注意**：这是应用层出站策略，不接管系统全局路由，也不替代系统 Tailscale 客户端；`underlying-proxy` 一旦指向代理，peer 流量就只走 DERP 中继（延迟更高）；`allow-peer-access` / `advertise-*` 是让别的节点反向连本机，iOS 端要 6.0.0+。
+
+## 本地配置 local.conf
+
+`surge.conf` 里订阅组与 MITM 证书被拆到同目录的 `local.conf`，用 `#!include` 引用（官方「配置分离 / 关联配置」）：
+
+| 段 | surge.conf 里的写法 | local.conf 里存什么 |
+|---|---|---|
+| `[Proxy Group]` | `#!include local.conf` | `机场订阅` 组（真实订阅 URL） |
+| `[MITM]` | `#!include local.conf` | `ca-p12` / `ca-passphrase`（默认注释，填了才生效） |
+
+这样 `surge.conf` 整份更新时，订阅 URL 与证书都不会被覆盖。文件缺失时配置仍能加载，只是没有订阅节点、MITM 不生效。
+
+Tailscale **不在这份文件里**：策略行与 `[Tailscale tailscale]` 段直接写在 `surge.conf`，跟着上游一起更新；登录状态存在本机，更新后不用重新登录。
+
+注意：
+
+- 引用的文件**不能再引用第三个文件**（官方限制）；`local.conf` 只放上面这些段。
+- 一个段只引用一个文件时该段可以在 UI 里编辑；引用托管配置的段是只读的，改要直接编辑 `local.conf`。
+- 段名不要重复：同一个段名在两个文件里各定义一次会加载失败；`local.conf` 只写上面那两段。
+- 不要把真实订阅 URL、auth key、证书提交到仓库。
 
 ## 其他关键项
 
