@@ -14,7 +14,7 @@
 | `mihomo/mihomo.yaml` | 当前使用的 Mihomo 主配置 | ↑ |
 | `loon/` | Loon 配置文件（完整配置，可直接一键导入） | [loon/README.md](loon/README.md) |
 | `loon/loon.lcf` | 当前使用的 Loon 主配置 | ↑ |
-| `surge/` | Surge 配置文件（完整配置，可直接从 URL 导入） | [surge/README.md](surge/README.md) |
+| `surge/` | Surge 配置文件（本地入口按段引用远程核心） | [surge/README.md](surge/README.md) |
 | `surge/surge.conf` | 当前使用的 Surge 主配置 | ↑ |
 | `egern/` | Egern 配置文件（完整配置，可直接一键导入） | [egern/README.md](egern/README.md) |
 | `egern/egern.yaml` | 当前使用的 Egern 主配置 | ↑ |
@@ -32,7 +32,7 @@
 | Mihomo | 节点由 Sub-Store 输出时注入，模板本身不写 `proxies` / `proxy-providers` | 在 Sub-Store 里配订阅与脚本操作（见 [mihomo/README.md](mihomo/README.md)） |
 | Loon | `AllNodes` 来自 Loon 内添加的订阅 | Loon 内添加机场订阅 |
 | Egern | `机场订阅` 组的 `urls` | 把占位串换成真实订阅 URL（只需改这一处，`Proxy` 用 YAML 锚点复用） |
-| Surge | `机场订阅` 组的 `policy-path` | 把占位串换成真实订阅 URL（只需改这一处，`Proxy` / `Auto` 用 `include-other-group` 复用） |
+| Surge | `local.conf` 的 `policy-path` | 本地入口保存真实订阅 URL（只需改这一处，`Proxy` / `Auto` 用 `include-other-group` 复用） |
 | sing-box | `providers[0].url` | 把占位串换成真实订阅 URL |
 
 Egern、Surge 与 sing-box 仓库文件里写的是占位串（`这里填入你的机场订阅 URL` / `https://example.com/your-subscription`），**不替换就会一直加载失败**，这不是配置残缺。

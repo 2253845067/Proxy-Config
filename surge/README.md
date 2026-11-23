@@ -2,36 +2,28 @@
 
 [← 返回总览](../README.md) · 配置文件：`surge.conf`
 
-完整配置，可从 URL 导入。本文件覆盖导入步骤，以及 DNS 限制、APNs、测速、广告拦截、规则求值顺序这些 Surge 特有的细节。
+Surge 配置由本地 `local.conf` 作为入口，按段引用本文件中的远程核心。本文覆盖配置创建、DNS 限制、APNs、测速、广告拦截、规则求值顺序等 Surge 特有细节。
 
 ## 使用方法
 
-1. 打开 Surge → 首页顶部 / Mac 侧边栏最下方的 [更多] → [从 URL 下载配置]，填：
+1. 先通过 URL 导入远程 `surge.conf`。安装页「配置」区提供镜像和 GitHub 直连入口：
 
 ```text
 https://gh-proxy.com/https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-想一键导入（把配置地址交给 Surge 打开）就走安装页顶部那两个按钮：
-
-**<https://2253845067.github.io/Proxy-Config/surge/install.html>**
-
-一个走 `gh-proxy.com` 镜像，一个直连 GitHub。镜像打不开就用直连那条；也可以在 Surge 里直接填原始地址：
+镜像不可用时可改用 GitHub Raw：
 
 ```text
 https://raw.githubusercontent.com/2253845067/Proxy-Config/main/surge/surge.conf
 ```
 
-2. **导入 `local.conf`（订阅 URL 与 MITM 证书放这里）**，二选一：
-
-   - **关联配置**：先导入并切换到 `surge.conf`，再对它点「创建关联配置」，弹窗里只勾选 `Proxy Group`，其余段全部不勾。Surge 会生成一份本地配置，把 `surge.conf` 里 `#!include local.conf` 的路径改成实际文件名（或直接把本地配置命名成 `local.conf`）。
-   - **一键导入**：安装页里 `local.conf` 那两个按钮（镜像 / 直连），装进 Profiles 目录即可；`surge.conf` 里 `#!include local.conf` 就按文件名找它。
-
-   然后打开那份 `local.conf`，把 `机场订阅` 那行的占位串 `这里填入你的机场订阅 URL` 换成真实订阅 URL（**唯一必改**，`Proxy` / `Auto` 通过 `include-other-group` 复用），再按需填 MITM 证书。以后 `surge.conf` 怎么更新，这两样都不会被覆盖。
-
-3. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`——`include-all-proxies=true` 会把这些手动添加的节点一并收进来（同一套过滤正则仍然生效）。注意：**组内一个节点都没有时 Surge 不会报错，而是把该组回落成 `DIRECT`**（日志里显示 `SUBSTITUTE`），表现就是"全部直连"，看到这个现象先回去查订阅。
-4. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并取消 `[SSID Setting]` 中对应模板行的注释、填入路由器 IP；连上该 Wi-Fi 时 DNS 会交给路由器解析。不使用第二个路由器时无需更改模板。
-5. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
+2. 在 Surge 中自己创建一个本地配置，然后打开安装页，复制「配置」区展示的 `local.conf` 全文并粘贴进去。`local.conf` 不能通过链接导入，否则会成为远程配置。
+3. `local.conf` 通过 `#!include surge.conf` 按段引用刚导入的核心。请让 Surge 配置文件列表中的核心文件名为 `surge.conf`，名称不同时同步修改所有 include 行。`local.conf` 必须作为本地配置创建并粘贴内容，不能通过 URL 导入，否则会变成远程配置。
+4. 将本地配置中 `机场订阅` 的占位串替换为真实订阅 URL，再按需在 `[MITM]` 填入本机证书。此后更新 `surge.conf`，本地订阅和证书仍留在本地配置。
+5. 更新外部资源，确认 `Proxy` / `Auto` 里能看到节点。若你更习惯在 Surge 里单独添加外部资源 / 订阅，也可以不改 `policy-path`，`include-all-proxies=true` 会把这些手动添加的节点一并收进来。组内没有节点时 Surge 可能将组回落成 `DIRECT`（日志里显示 `SUBSTITUTE`），表现为全部直连。
+6. `场景分流` 已将 `YUQI` 设为直连。若要配置第二个路由器，可把 `"WiFi2"` 改为实际 SSID，并在 `[SSID Setting]` 里取消对应模板行的注释、填入路由器 IP。
+7. 开启 Surge（iOS 用 VPN / 增强模式，Mac 用增强模式或接管系统代理），并在 [工具] 里更新一次规则集与 GeoIP 数据库。
 
 ## DNS
 
@@ -73,24 +65,23 @@ exit-node = auto                              # 可选：tailnet 里恰好一个
 
 ## 本地配置 local.conf
 
-`surge.conf` 里订阅组与 MITM 证书被拆到同目录的 `local.conf`，用 `#!include` 引用（官方「配置分离 / 关联配置」）：
+`surge.conf` 通过 URL 导入 Surge 后作为远程核心配置，`local.conf` 是本地主配置。后者用相对路径 `#!include surge.conf` 引用核心，并在 `[Proxy Group]` / `[MITM]` 追加仅本机保存的订阅和证书：
 
 | 段 | surge.conf 里的写法 | local.conf 里存什么 |
 |---|---|---|
-| `[Proxy Group]` | `#!include local.conf` | `机场订阅` 组（真实订阅 URL） |
-| `[MITM]` | `#!include local.conf` | `ca-p12` / `ca-passphrase`（默认注释，填了才生效） |
-| `[General]` / `[Rule]` | —— | 空 `[General]` + `FINAL,DIRECT`：只为让 `local.conf` 能单独导入，被引用时不参与求值 |
+| `[General]`、`[SSID Setting]`、`[Host]`、`[Proxy]`、`[Tailscale tailscale]`、`[Proxy Group]`、`[Rule]`、`[MITM]` | `#!include surge.conf` | 对应段来自远程核心 |
+| `[Proxy Group]` | include 后补充本地组 | `机场订阅` 的真实 URL |
+| `[MITM]` | include 后填写本地值 | `ca-p12` / `ca-passphrase` |
 
-这样 `surge.conf` 整份更新时，订阅 URL 与证书都不会被覆盖。文件缺失时配置仍能加载，只是没有订阅节点、MITM 不生效。
+这样本地入口始终保留订阅 URL 与证书，更新远程托管的 `surge.conf` 后，本地配置继续读取更新后的核心。远程核心不应再反向 include `local.conf`，否则会形成循环引用。
 
-Tailscale **不在这份文件里**：策略行与 `[Tailscale tailscale]` 段直接写在 `surge.conf`，跟着上游一起更新；登录状态存在本机，更新后不用重新登录。
+Tailscale 策略行与 `[Tailscale tailscale]` 段仍来自远程核心；登录状态由 Surge 保存在本机。
 
 注意：
 
-- 引用的文件**不能再引用第三个文件**（官方限制）；`local.conf` 只放上面这些段。
-- `local.conf` 同时要能被单独导入（一键导入走的就是这条路），所以它自带空的 `[General]` 和 `FINAL,DIRECT` 收尾；缺了这两样，Surge 会把它当成残缺配置而报错。
-- 一个段只引用一个文件时该段可以在 UI 里编辑；引用托管配置的段是只读的，改要直接编辑 `local.conf`。
-- 段名不要重复：同一个段名在两个文件里各定义一次会加载失败；`local.conf` 只写上面那两段。
+- `#!include surge.conf` 是本地文件引用。若 Surge 中核心配置使用了其他名称，所有 include 行都要同步改名。
+- 远程核心不要引用本地文件，确保引用关系只有 `local.conf` → `surge.conf`。
+- 更新远程核心后，重新加载 `local.conf` 并检查配置状态和 `Proxy` / `Auto` 节点。
 - 不要把真实订阅 URL、auth key、证书提交到仓库。
 
 ## 其他关键项
@@ -160,7 +151,7 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 
 **安装顺序**：先装表格最上面两条标了「前置依赖」的模块，再装其他的。缺了它们，后面那些去广告模块可能整体不生效。
 
-**装模块请用这个页面：[2253845067.github.io/Proxy-Config/surge/install.html](https://2253845067.github.io/Proxy-Config/surge/install.html)**（源码 `surge/install.html`）。它是真 HTML，46 个模块 + 2 条配置导入做成了可点卡片，带搜索框、前置依赖标红、备选单独分组，点一下直接唤起 Surge 安装。
+**装模块请用这个页面：[2253845067.github.io/Proxy-Config/surge/install.html](https://2253845067.github.io/Proxy-Config/surge/install.html)**（源码 `surge/install.html`）。它是真 HTML，47 个模块和 `surge.conf` 的镜像 / 直连导入做成了可点卡片，`local.conf` 则直接展示可复制的全文；页面带搜索框、前置依赖标红、备选单独分组，点卡片可唤起 Surge 安装。
 
 之所以不用下面这张表直接点：`surge://` 不是 http(s) 协议，**Markdown 渲染器会按协议白名单把这种链接整个丢掉**（GitHub 实测会把 `[x](surge://…)` 渲染成纯文本 `<p>x</p>`，连 `<a>` 都不生成），微信 / GitHub App 的内嵌浏览器也会拦这类跳转。所以**表格里不再放任何 `surge://` 链接**，只留模块名和 Loon 插件名作索引；要装就去那个页面点。
 
@@ -210,6 +201,7 @@ APNs 域名规则走 `场景分流`，优先于 `AppleCN`；已知 IPv4 / IPv6 �
 | 网盘浏览器 | 夸克去广告 | `QuarkBrowser_remove_ads` |  |
 | 网盘浏览器 | 夸克扫描王去广告 | `QuarkScanking_remove_ads` |  |
 | 网盘浏览器 | 百度搜索网页去广告 | `BaiduSearchWebpage_remove_ads` |  |
+| 补充 | Local Device Loopback | — | 可选；将 `10.7.0.1` 反射回本机，供设备端开发工具使用 |
 
 模块地址前缀是 `https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/main/Surge/`，镜像失效时把前缀去掉、改用 GitHub 原始地址 `https://raw.githubusercontent.com/QingRex/LoonKissSurge/main/Surge/`。
 
