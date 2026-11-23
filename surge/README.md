@@ -4,6 +4,8 @@
 
 Surge 配置由本地 `local.conf` 作为入口，按段引用本文件中的远程核心。本文覆盖配置创建、DNS 限制、APNs、测速、广告拦截、规则求值顺序等 Surge 特有细节。
 
+**安装页：[打开 Surge 安装页](https://2253845067.github.io/Proxy-Config/surge/install.html)**（配置导入、`local.conf` 复制和模块安装都在这里）。
+
 ## 使用方法
 
 1. 先通过 URL 导入远程 `surge.conf`。安装页「配置」区提供镜像和 GitHub 直连入口：
