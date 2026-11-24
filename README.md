@@ -70,7 +70,7 @@ Sub-Store 拉取模板这一步例外：优先用 GitHub 原始地址，`gh-prox
 
 > **规则来源**：规则集全部取自 [Repcz/Tool](https://github.com/Repcz/Tool)（分支 `X`）对应的 `mihomo/Rules`、`Loon/Rules`、`Egern/Rules`、`Surge/Rules`、`sing-box/Rules` 目录，经镜像中转引用，上游每天自动重建，本仓库只引用不镜像内容。mihomo / Loon / Egern / Surge 各 46 个，sing-box 45 个（上游没有 `ChinaASN.srs`，官方 sing-box 也不支持 ASN 匹配）。原先的 ACL4SSR 大列表（`BanEasyList` 4.1 万条 + `BanEasyPrivacy` 4 万条 + 其余三项，合计约 8.7 万条）已整体下线，换成 `Reject`（6200 条精选）+ `Ads_AWAvenue`（国内 App 净化），内存占用与启动解析量大幅下降。
 >
-> 规则集**同源**，但本地补充规则**不完全相同**，看分流结果时不要只看规则集：Loon 额外强制两条业务域名直连（`report-online.sh.wxgateway.com`、`diancan.xibeilangsaoma.com`），同时少了其他四端都写死的 `weather.apple.com` / `weather-analytics-events.apple.com → CN`——Loon 上这两个域名会落到 `场景分流`（默认代理），这是当前**有意保留**的差异；需要对齐时自己在 `[Rule]` 里补两行 `DOMAIN-SUFFIX` 即可。Surge 的天气域名补丁与 mihomo / Egern / sing-box 对齐。
+> 规则集**同源**，但本地补充规则**不完全相同**，看分流结果时不要只看规则集：Loon 额外强制两条业务域名直连（`report-online.sh.wxgateway.com`、`diancan.xibeilangsaoma.com`），天气域名方面，`weather.apple.com → CN` 已在 `[Rule]` 里写死，与其他四端一致；只有 `weather-analytics-events.apple.com` **有意不写** CN——它交给 WeatherKit 插件做 REJECT-DROP，本地补 `DOMAIN-SUFFIX,CN` 会盖掉插件处理，不要补。Surge 的天气域名补丁与 mihomo / Egern / sing-box 对齐。
 >
 > **国内判定**：mihomo / Loon / Egern / Surge 都是四层——`ChinaDomain`（1.3 万条域名）→ `ChinaASN`（5076 条运营商 ASN，补 `ChinaIP` 漏掉的国内 IP）→ `ChinaIP`（CIDR 列表）→ `GEOIP,CN` 兜底，但 **Surge 的排列位置不同**：Surge 求值到第一条 IP 规则时会暂停并做一次真实 DNS 解析，所以 Surge 里 IP 三层被整体挪到「所有域名规则之后、`FINAL` 之前」，并且**不带** `no-resolve`——只有「域名表全没命中」的流量才解析一次做 IP 兜底；命中域名表时零解析。mihomo / Loon / Egern 仍是 `ChinaASN` / `ChinaIP` 紧跟在 `ChinaDomain` 后面并带 `no-resolve`（它们的规则引擎不因 IP 规则中断求值）。Surge 的 `IP-ASN` 用的是客户端自带的 GeoLite2 ASN 库（随 App 更新，配置里无法更换）。sing-box 只有三层（`ChinaDomain` → `ChinaIP` → 末条 `final: Proxy`），没有 ASN 和 GEOIP 兜底。
 >
