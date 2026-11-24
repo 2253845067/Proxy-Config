@@ -541,11 +541,11 @@ modules:
     url: "https://gh-proxy.com/https://raw.githubusercontent.com/QingRex/LoonKissSurge/refs/heads/main/Surge/Beta/拼多多去广告.beta.sgmodule"
     enabled: true
 
-  # Manmanbuy-Cookie: true 会把京东 Cookie 上报给第三方比价服务，是隐私代价而不只是广告问题
+  # Manmanbuy-Cookie 已关闭（false）：开启会把京东 Cookie 上报给第三方比价服务，是隐私代价而不只是广告问题
   - name: 京东去广告比价
     url: "https://gh-proxy.com/https://raw.githubusercontent.com/jadkg/egern/refs/heads/main/京东去广告.Ipx"
     compat_arguments:
-      Manmanbuy-Cookie: 'true'
+      Manmanbuy-Cookie: 'false'
       JDPrice-TitleEmbed: 'false'
       JDPrice-DetailNotify: 'false'
       JDPrice-DetailEmbed-Table: 'true'
